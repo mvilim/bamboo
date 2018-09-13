@@ -1,0 +1,16 @@
+build/
+release/
+debug/
+dist/
+_build/
+_generate/
+*.so
+*.so.*
+*.py[cod]
+*.egg-info
+*.eggs/
+*cdb.sh
+*rc.sh
+env/
+compile_commands.json
+.idea

@@ -1,0 +1,16 @@
+[submodule "pybind11"]
+	path = cpp/thirdparty/pybind11
+	url = https://github.com/pybind/pybind11.git
+	branch = master
+[submodule "avro"]
+	path = cpp/thirdparty/avro
+	url = https://github.com/mvilim/avro.git
+	branch = bamboo
+[submodule "arrow"]
+	path = cpp/thirdparty/arrow
+	url = https://github.com/apache/arrow.git
+	branch = master
+[submodule "json"]
+	path = cpp/thirdparty/json
+	url = https://github.com/nlohmann/json
+	branch = master

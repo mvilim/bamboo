@@ -1,0 +1,27 @@
+24c24
+< mkdir /arrow_boost
+---
+> mkdir /boost
+27,28c27
+< ./b2 tools/bcp
+< ./dist/bin/bcp --namespace=arrow_boost --namespace-alias filesystem date_time system regex build algorithm locale format variant multi_precision/cpp_int /arrow_boost
+---
+> ./bjam dll-path="'\$ORIGIN/'" cxxflags='-std=c++11 -fPIC' cflags=-fPIC linkflags="-std=c++11" variant=release link=static --namespace-alias --prefix=/boost --with-filesystem --with-date_time --with-system --with-regex --with-program_options --with-iostreams install
+30,36c29
+< 
+< pushd /arrow_boost
+< ls -l
+< ./bootstrap.sh
+< ./bjam dll-path="'\$ORIGIN/'" cxxflags='-std=c++11 -fPIC' cflags=-fPIC linkflags="-std=c++11" variant=release link=shared --prefix=/arrow_boost_dist --with-filesystem --with-date_time --with-system --with-regex install
+< popd
+< rm -rf boost_${BOOST_VERSION_UNDERSCORE}.tar.gz boost_${BOOST_VERSION_UNDERSCORE} arrow_boost
+---
+> rm -rf boost_${BOOST_VERSION_UNDERSCORE}.tar.gz boost_${BOOST_VERSION_UNDERSCORE}
+40c33
+< rm -r /arrow_boost_dist/include/boost/fusion
+---
+> rm -r /boost/include/boost/fusion
+42c35
+< rm -r /arrow_boost_dist/include/boost/spirit
+---
+> rm -r /boost/include/boost/spirit

@@ -1,0 +1,30 @@
+language: python
+
+matrix:
+  include:
+    - sudo: required
+      services:
+        - docker
+    - os: osx
+      language: generic
+
+env:
+  global:
+    - CIBW_SKIP='*-manylinux1_i686'
+    - CIBW_BUILD='cp3?-*'
+    - CIBW_TEST_REQUIRES='nose pyarrow avro-python3 fastavro'
+    - CIBW_TEST_COMMAND='nosetests {project}/python/bamboo/tests'
+    - CIBW_MANYLINUX1_X86_64_IMAGE=mvilim/bamboo_manylinux1_x86_64
+    - CIBW_ENVIRONMENT_LINUX='BOOST_ROOT=/boost'
+    - TWINE_USERNAME='mvilim'
+    # TWINE_PASSWORD is stored in the travis project settings
+
+script:
+  - bash scripts/build.sh
+
+deploy:
+  provider: script
+  script: bash scripts/deploy.sh
+  skip_cleanup: true
+  on:
+    tags: true
