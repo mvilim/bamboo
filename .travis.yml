@@ -10,7 +10,7 @@ matrix:
 
 env:
   global:
-    - CIBW_SKIP='*-manylinux1_i686'
+    - CIBW_SKIP='cp34-* *-manylinux1_i686'
     - CIBW_BUILD='cp3?-*'
     - CIBW_TEST_REQUIRES='nose pyarrow avro-python3 fastavro'
     - CIBW_TEST_COMMAND='nosetests {project}/python/bamboo/tests'
