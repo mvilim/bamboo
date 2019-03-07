@@ -1,6 +1,6 @@
 set -e -x
 
-pip install cibuildwheel==0.10.1
+pip install --user cibuildwheel==0.10.1
 cibuildwheel --output-dir dist
 
 # only create the source distribution from linux, so that we don't try to upload it twice
