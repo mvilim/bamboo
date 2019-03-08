@@ -1,14 +1,14 @@
 // Copyright (c) 2019 Michael Vilim
-// 
+//
 // This file is part of the bamboo library. It is currently hosted at
 // https://github.com/mvilim/bamboo
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //    http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -113,14 +113,18 @@ py::object get_node_enum_indices(PrimitiveNode& node) {
 
 py::object get_enum_values(PrimitiveVector& vec);
 
-template <class T, class F> py::class_<BufferVector<T, F>> buffer(py::handle m) {
-    return py::class_<BufferVector<T, F>>(m, typeid(BufferVector<T, F>).name(),
-                                          py::buffer_protocol())
-        .def_buffer([](BufferVector<T, F>& a) -> py::buffer_info { return a.buffer(); });
+template <class T, class F> void buffer(py::handle m) {
+    const char* name = typeid(BufferVector<T, F>).name();
+    // don't try to register the same buffer vectors twice (this can happen in the case of
+    // overlapping types, e.g. size_t and uint64_t on many 64 bit systems)
+    if (!hasattr(m, name)) {
+        py::class_<BufferVector<T, F>>(m, name, py::buffer_protocol())
+            .def_buffer([](BufferVector<T, F>& a) -> py::buffer_info { return a.buffer(); });
+    }
 };
 
-template <class T> py::class_<BufferVector<T, T>> sbuffer(py::handle m) {
-    return buffer<T, T>(m);
+template <class T> void sbuffer(py::handle m) {
+    buffer<T, T>(m);
 };
 
 class PythonBufferStream {
@@ -270,8 +274,8 @@ PYBIND11_MODULE(bamboo_cpp_bind, m) {
              py::return_value_policy::reference_internal)  // this is inconsistent -- some of the
                                                            // return types (i.e. string) create
                                                            // copies, some only create views; we may
-                                                           // keep unneeded copies in memory for string
-                                                           // values
+                                                           // keep unneeded copies in memory for
+                                                           // string values
         .def("get_type", &PrimitiveNode::get_type)
         .def("get_strings", &get_node_strings)
         .def("get_unicode_strings", &get_unicode_strings)
