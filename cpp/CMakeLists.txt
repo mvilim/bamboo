@@ -21,8 +21,6 @@ project(bamboo VERSION ${VERSION_INFO})
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_BUILD_TYPE Debug)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # this must be set here so that it affects avro, allowing us 
