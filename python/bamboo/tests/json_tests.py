@@ -27,7 +27,7 @@ from bamboo import from_json
 from bamboo.tests.test_utils import df_equality
 
 
-class AvroTests(TestCase):
+class JsonTests(TestCase):
     def convert_obj(self, obj):
         jsons = json.dumps(obj)
         json_stream = io.BytesIO(bytes(jsons, 'utf8'))
