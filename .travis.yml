@@ -5,6 +5,8 @@ matrix:
     - sudo: required
       services:
         - docker
+    - os: osx
+      language: generic
 
 env:
   global:
