@@ -17,12 +17,12 @@
 
 #pragma once
 
+#include <columns.hpp>
+
 #include <arrow/api.h>
 #include <arrow/io/api.h>
 #include <arrow/ipc/api.h>
 #include <iostream>
-
-#include <columns.hpp>
 
 namespace bamboo {
 namespace arrow {

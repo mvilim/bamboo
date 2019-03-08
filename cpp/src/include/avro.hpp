@@ -17,9 +17,10 @@
 
 #pragma once
 
+#include <columns.hpp>
+
 #include <Decoder.hh>
 #include <Schema.hh>
-#include <columns.hpp>
 
 using namespace avro;
 
