@@ -43,7 +43,7 @@ pip install bamboo-nested
 
 ### Example
 
-A minimal of flattening a JSON string:
+A minimal example of flattening a JSON string:
 
 ```
 from bamboo import from_json
