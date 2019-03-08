@@ -125,6 +125,7 @@ class AvroTests(TestCase):
         value = [1, 2]
         b = object(list_schema, value)
         node = bamboo_cpp.convert_avro(b)
+        self.assertEqual(node.get_list().get_list().get_size(), 2)
         self.assertListEqual(node.get_list().get_list().get_values().tolist(), value)
 
     def test_null(self):

@@ -118,17 +118,18 @@ class ArrowTests(TestCase):
     def test_list_struct(self):
         arr = pa.array([{'x': 1, 'y': [{'a': 3, 'b': 6}]}, {'x': 2, 'y': [{'a': 4, 'b': 7}, {'a': 5, 'b': 8}]}])
         node = self.array_convert(arr)
+        self.assertEqual(node.get_field('y').get_list().get_size(), 3)
         self.assertListEqual(node.get_field('y').get_list().get_field('b').get_values().tolist(), [6, 7, 8])
 
     def test_list_of_list(self):
         arr = pa.array([[1, 2, None], None, [3]])
         node = self.array_convert(arr)
+        self.assertEqual(node.get_size(), 3)
+        self.assertListEqual(node.get_index().tolist(), [3, 1])
+        self.assertListEqual(node.get_null_indices().tolist(), [1])
+        self.assertEqual(node.get_list().get_size(), 4)
         self.assertListEqual(node.get_list().get_values().tolist(), [1, 2, 3])
         self.assertListEqual(node.get_list().get_null_indices().tolist(), [2])
-        self.assertListEqual(node.get_null_indices().tolist(), [1])
-        self.assertEqual(node.get_size(), 3)
-        self.assertEqual(node.get_list().get_size(), 4)
-        self.assertListEqual(node.get_index().tolist(), [3, 1])
 
     def test_flatten(self):
         arr = pa.array([{'x': 1, 'y': [{'a': 3, 'b': 6}]}, {'x': 2, 'y': [{'a': 4, 'b': 7}, {'a': 5, 'b': 8}]}])
