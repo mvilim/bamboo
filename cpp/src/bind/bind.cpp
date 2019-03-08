@@ -232,7 +232,7 @@ PYBIND11_MODULE(bamboo_cpp_bind, m) {
         .def("get_size", [](ListNode& node) { return get_size(node); })
         .def("get_null_indices", [](ListNode& node) { return get_indices(node); },
              py::return_value_policy::reference_internal)
-        .def("get_index", [](ListNode& node) { return as_array<size_t, size_t>(node.get_index()); },
+        .def("get_index", [](ListNode& node) { return s_as_array(node.get_index()); },
              py::return_value_policy::reference_internal)
         .def("get_list", [](ListNode& node) -> Node& { return *node.get_list(); },
              py::return_value_policy::reference_internal);
