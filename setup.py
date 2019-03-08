@@ -95,7 +95,6 @@ class CMakeBuild(build_ext):
 install_requires = [
     'pandas>=0.22.0',
     'numpy>=1.15.0',
-    'typing>3.6;python_version<"3.5"',
     ]
 
 
