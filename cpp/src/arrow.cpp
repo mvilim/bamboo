@@ -25,7 +25,7 @@ unique_ptr<Node> convert(const Array& array);
 void update_nulls(const Array& array, Node& node) {
     // it would be better to directly copy the null array values (or do it in a way that is more
     // conducive to optimization)
-    for (size_t i; i < array.length(); i++) {
+    for (size_t i = 0; i < array.length(); i++) {
         if (array.IsNull(i)) {
             node.add_null();
         } else {
