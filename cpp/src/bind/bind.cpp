@@ -211,8 +211,7 @@ py::object get_node_enum_values(PrimitiveNode& node) {
 };
 
 PYBIND11_MODULE(bamboo_cpp_bind, m) {
-    // sbuffer<size_t>(m); -- this conflicts with uint64_t by defining it twice -- we should add a
-    // way to name these types to differentiate
+    sbuffer<size_t>(m);
     sbuffer<int8_t>(m);
     sbuffer<int16_t>(m);
     sbuffer<int32_t>(m);
