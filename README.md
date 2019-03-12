@@ -31,7 +31,7 @@ The current data formats supported are:
 * Apache Avro
 * Apache Arrow
 
-bamboo works by projecting a flattenable portion (a subset of the nested columns) of the data into a pandas dataframe. By projecting the various 
+bamboo works by projecting a flattenable portion (a subset of the nested columns) of the data into a pandas dataframe. By projecting various combinations of columns, one can make use of all the relationships implied by the nested structure of the data.
 
 ### Installation
 
