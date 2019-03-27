@@ -14,3 +14,7 @@
 	path = cpp/thirdparty/json
 	url = https://github.com/nlohmann/json
 	branch = master
+[submodule "pbd"]
+	path = cpp/thirdparty/pbd
+	url = https://github.com/mvilim/pbd.git
+    branch = master

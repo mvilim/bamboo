@@ -25,6 +25,7 @@
 #include <boost/iostreams/stream.hpp>
 #include <iostream>
 #include <json.hpp>
+#include <pbd.hpp>
 
 namespace py = pybind11;
 namespace io = boost::iostreams;
@@ -284,8 +285,8 @@ PYBIND11_MODULE(bamboo_cpp_bind, m) {
              py::return_value_policy::reference_internal);
 
     py::class_<IncompleteNode>(m, "IncompleteNode")
-        .def("get_size", [](PrimitiveNode& node) { return get_size(node); })
-        .def("get_null_indices", [](PrimitiveNode& node) { return get_indices(node); },
+        .def("get_size", [](IncompleteNode& node) { return get_size(node); })
+        .def("get_null_indices", [](IncompleteNode& node) { return get_indices(node); },
              py::return_value_policy::reference_internal);
 
     m.def("convert_avro", convert(bamboo::avro::direct::convert));
@@ -293,6 +294,8 @@ PYBIND11_MODULE(bamboo_cpp_bind, m) {
     m.def("convert_arrow", convert(bamboo::arrow::convert));
 
     m.def("convert_json", convert(bamboo::json::convert));
+
+    m.def("convert_pbd", convert(bamboo::pbd::convert));
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

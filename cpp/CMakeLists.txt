@@ -37,6 +37,10 @@ endif ()
 set(ARROW_BUILD_STATIC ON)
 set(ARROW_IPC ON)
 
+list(APPEND CMAKE_MODULE_PATH thirdparty/pbd/thirdparty/proto-cmake/cmake)
+
+find_package(Protobuf REQUIRED)
+
 add_subdirectory(thirdparty/arrow/cpp)
 add_subdirectory(thirdparty/pybind11)
 add_subdirectory(thirdparty/avro/lang/c++)
@@ -46,10 +50,20 @@ find_package(Boost 1.38 REQUIRED)
 FILE(GLOB bamboo_cpp_src "src/*.cpp")
 add_library(bamboo_cpp ${bamboo_cpp_src})
 target_include_directories(bamboo_cpp
-    PUBLIC src/include thirdparty/json/single_include thirdparty/avro/lang/c++/api thirdparty/arrow/cpp/src ${Boost_INCLUDE_DIR})
+    PUBLIC src/include
+    thirdparty/json/single_include
+    thirdparty/avro/lang/c++/api
+    thirdparty/arrow/cpp/src
+    thirdparty/pbd/cpp/src/include
+    ${Boost_INCLUDE_DIR})
 
 target_link_libraries(bamboo_cpp
-    PUBLIC avrocpp_s arrow_static z)
+    PUBLIC
+    avrocpp_s
+    arrow_static
+    protobuf::libprotobuf
+    z
+    )
 
 pybind11_add_module(bamboo_cpp_bind src/bind/bind.cpp)
 target_include_directories(bamboo_cpp_bind

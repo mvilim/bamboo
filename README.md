@@ -30,6 +30,7 @@ The current data formats supported are:
 * JSON
 * Apache Avro
 * Apache Arrow
+* Profobuf (via [PBD](https://github.com/mvilim/pbd))
 
 bamboo works by projecting a flattenable portion (a subset of the nested columns) of the data into a pandas dataframe. By projecting various combinations of columns, one can make use of all the relationships implied by the nested structure of the data.
 
@@ -108,4 +109,4 @@ nosetests python/bamboo/tests
 
 ### Licensing
 
-This project is licensed under the [Apache 2.0 License](https://github.com/mvilim/bamboo/blob/master/LICENSE). It uses the pybind11, Arrow, Avro, and nlohmann JSON projects. The licenses can be found in those [projects' directories](https://github.com/mvilim/bamboo/blob/master/cpp/thirdparty).
+This project is licensed under the [Apache 2.0 License](https://github.com/mvilim/bamboo/blob/master/LICENSE). It uses the pybind11, Arrow, Avro, nlohmann JSON, and PBD projects. The licenses can be found in those [projects' directories](https://github.com/mvilim/bamboo/blob/master/cpp/thirdparty).

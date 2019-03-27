@@ -41,6 +41,10 @@ def from_arrow(s: Type[IOBase]) -> Node:
     return convert_extension_node(bamboo_cpp.convert_arrow(s))
 
 
+def from_pbd(s: Type[IOBase]) -> Node:
+    return convert_extension_node(bamboo_cpp.convert_pbd(s))
+
+
 def from_json(s: Union[str, Type[IOBase]]) -> Node:
     if isinstance(s, str):
         extension_node = bamboo_cpp.convert_json(BytesIO(bytes(s, 'utf8')))
