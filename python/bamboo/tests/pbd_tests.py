@@ -26,7 +26,7 @@ from bamboo.tests.test_utils import df_equality
 
 class PBDTests(TestCase):
     def test_example(self):
-        file = open(os.path.realpath('data/example.pbd'), 'rb')
+        file = open(os.path.join(os.path.dirname(__file__), 'data', 'example.pbd'), 'rb')
         example = file.read()  # if you only wanted to read 512 bytes, do .read(512)
         file.close()
 
@@ -34,4 +34,4 @@ class PBDTests(TestCase):
         df = node.flatten()
 
         df_equality(self, {'a': [13, 13], 'b': [23, 23], 'c': [33, 33],
-                           'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3]}, df, False)
+                           'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3]}, df)

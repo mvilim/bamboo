@@ -21,12 +21,14 @@ import numpy as np
 
 
 # we should make failures from these assertions easier to understand (print the differences)
-def df_equality(test_case: TestCase, expected, df, float_comparison=True):
+def df_equality(test_case: TestCase, expected, df):
     test_case.assertEqual(len(expected), len(df.columns))
     for key, value in expected.items():
         array = df[key]
         test_case.assertEqual(array.size, len(value))
-        if float_comparison:
+        if np.issubdtype(array.dtype, np.floating):
             test_case.assertTrue(np.allclose(array, np.array(value), equal_nan=True))
+        elif array.dtype == np.object:
+            test_case.assertTrue((array.values == np.array(value)).all())
         else:
             test_case.assertTrue(np.array_equal(array.values, np.array(value)))

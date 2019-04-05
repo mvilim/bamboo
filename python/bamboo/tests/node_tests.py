@@ -90,8 +90,8 @@ class ColumnNameTests(TestCase):
 
 
 class FlattenTests(TestCase):
-    def df_equality(self, expected, df, float_comparison=True):
-        df_equality(self, expected, df, float_comparison)
+    def df_equality(self, expected, df):
+        df_equality(self, expected, df)
 
     def test_attr(self):
         a1 = 1.0
@@ -187,7 +187,7 @@ class FlattenTests(TestCase):
         a = SimpleObject(a1)
         node = from_object(a)
         flattened = node.flatten(name_strategy=NameStrategy.CONCATENATE_ALWAYS)
-        self.df_equality({'value': 'a'}, flattened, False)
+        self.df_equality({'value': 'a'}, flattened)
 
     def test_flatten_multiple_lists(self):
         a = [1, 2]
