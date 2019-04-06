@@ -17,14 +17,15 @@
 
 from unittest import TestCase
 
-import numpy as np
-from fastavro import reader
-from io import BytesIO
+import sys
+
 from avro import schema
 from avro import io
 from avro import datafile
 
-from time import perf_counter
+import numpy as np
+from fastavro import reader
+from io import BytesIO
 
 import bamboo_cpp_bind as bamboo_cpp
 from bamboo import from_avro
@@ -32,47 +33,102 @@ from bamboo import from_avro
 from bamboo.tests.test_utils import df_equality
 
 
-def simple_schema(field_name, primitive_schema):
+class PrimitiveSchemas:
+    pass
+
+
+primitive_schemas = PrimitiveSchemas()
+if sys.version_info > (3, 0):
+    from time import perf_counter as clock
+
+    primitive_schemas.INT = schema.PrimitiveSchema(schema.INT)
+    primitive_schemas.LONG = schema.PrimitiveSchema(schema.LONG)
+    primitive_schemas.BOOLEAN = schema.PrimitiveSchema(schema.BOOLEAN)
+    primitive_schemas.FLOAT = schema.PrimitiveSchema(schema.FLOAT)
+    primitive_schemas.DOUBLE = schema.PrimitiveSchema(schema.DOUBLE)
+    primitive_schemas.STRING = schema.PrimitiveSchema(schema.STRING)
+    primitive_schemas.BYTES = schema.PrimitiveSchema(schema.BYTES)
+    primitive_schemas.NULL = schema.PrimitiveSchema(schema.NULL)
+
+    def make_field(field_name, field_schema):
+        return schema.Field(field_schema, field_name, 0, False)
+
+    def make_file_writer(out, datum_writer, datum_schema):
+        return datafile.DataFileWriter(out, datum_writer, writer_schema=datum_schema)
+
+    def make_array_schema(element_schema):
+        return schema.ArraySchema(element_schema)
+
+    def make_union_schema(element_schemas):
+        return schema.UnionSchema(element_schemas)
+else:
+    from time import clock
+
+    primitive_schemas.INT = 'int'
+    primitive_schemas.LONG = 'long'
+    primitive_schemas.BOOLEAN = 'boolean'
+    primitive_schemas.FLOAT = 'float'
+    primitive_schemas.DOUBLE = 'double'
+    primitive_schemas.STRING = 'string'
+    primitive_schemas.BYTES = 'bytes'
+    primitive_schemas.NULL = 'null'
+
+    def make_field(field_name, field_schema):
+        return schema.Field(field_schema, field_name, 0, False).to_json()
+
+    def make_file_writer(out, datum_writer, datum_schema):
+        return datafile.DataFileWriter(out, datum_writer, writers_schema=datum_schema)
+
+    def make_array_schema(element_schema):
+        names = schema.Names()
+        return schema.ArraySchema(element_schema, names)
+
+    def make_union_schema(element_schemas):
+        names = schema.Names()
+        return schema.UnionSchema(element_schemas, names=names)
+
+
+def simple_schema(field_name, field_schema):
     names = schema.Names()
-    field = schema.Field(schema.PrimitiveSchema(primitive_schema), field_name, 0, False)
+    field = make_field(field_name, field_schema)
     return schema.RecordSchema('test', 'test', [field], names=names)
 
 
 # we write directly to the raw buffer so that writing a large number of objects is not incredibly slow
-def write_n_simple_objects(field_name, primitive_schema, n, value):
-    buffer = BytesIO()
-    obj_schema = simple_schema(field_name, primitive_schema)
-    datum_writer = io.DatumWriter(obj_schema)
-    file_writer = datafile.DataFileWriter(buffer, datum_writer, writer_schema=obj_schema)
+def write_n_simple_objects(field_name, field_schema, n, value):
+    out = BytesIO()
+    datum_schema = simple_schema(field_name, field_schema)
+    datum_writer = io.DatumWriter(datum_schema)
+    file_writer = make_file_writer(out, datum_writer, datum_schema)
     file_writer._block_count += n
     # for small positive integers, zig-zag encoding will be 2x
-    file_writer._buffer_writer.write(bytes(n * [value * 2]))
+    file_writer._buffer_writer.write(bytearray(n * [value * 2]))
     file_writer.flush()
-    value = buffer.getvalue()
+    value = out.getvalue()
     return BytesIO(value)
 
 
-def simple_object(field_name, primitive_schema, primitive_value):
-    buffer = BytesIO()
-    obj_schema = simple_schema(field_name, primitive_schema)
-    datum_writer = io.DatumWriter(obj_schema)
-    file_writer = datafile.DataFileWriter(buffer, datum_writer, writer_schema=obj_schema)
+def simple_object(field_name, field_schema, primitive_value):
+    out = BytesIO()
+    datum_schema = simple_schema(field_name, field_schema)
+    datum_writer = io.DatumWriter(datum_schema)
+    file_writer = make_file_writer(out, datum_writer, datum_schema=datum_schema)
     file_writer.append({field_name: primitive_value})
     file_writer.flush()
-    return BytesIO(buffer.getvalue())
+    return BytesIO(out.getvalue())
 
 
-def object(obj_schema, value, iterate_over_values=False):
-    buffer = BytesIO()
-    datum_writer = io.DatumWriter(obj_schema)
-    file_writer = datafile.DataFileWriter(buffer, datum_writer, writer_schema=obj_schema)
+def object(datum_schema, value, iterate_over_values=False):
+    out = BytesIO()
+    datum_writer = io.DatumWriter(datum_schema)
+    file_writer = make_file_writer(out, datum_writer, datum_schema=datum_schema)
     if iterate_over_values:
         for v in value:
             file_writer.append(v)
     else:
         file_writer.append(value)
     file_writer.flush()
-    return BytesIO(buffer.getvalue())
+    return BytesIO(out.getvalue())
 
 
 class AvroTests(TestCase):
@@ -85,25 +141,25 @@ class AvroTests(TestCase):
         self.assertListEqual(primitive_node.get_values().tolist(), [primitive_value])
 
     def test_integer(self):
-        self.assert_primitive(schema.INT, 3)
+        self.assert_primitive(primitive_schemas.INT, 3)
 
     def test_long(self):
-        self.assert_primitive(schema.LONG, 1)
+        self.assert_primitive(primitive_schemas.LONG, 1)
 
     def test_bool(self):
-        self.assert_primitive(schema.BOOLEAN, False)
+        self.assert_primitive(primitive_schemas.BOOLEAN, False)
 
     def test_float(self):
-        self.assert_primitive(schema.FLOAT, 0.5)
+        self.assert_primitive(primitive_schemas.FLOAT, 0.5)
 
     def test_double(self):
-        self.assert_primitive(schema.DOUBLE, 0.5)
+        self.assert_primitive(primitive_schemas.DOUBLE, 0.5)
 
     def test_string(self):
-        self.assert_primitive(schema.STRING, 'test')
+        self.assert_primitive(primitive_schemas.STRING, 'test')
 
     def test_bytes(self):
-        self.assert_primitive(schema.BYTES, b'test')
+        self.assert_primitive(primitive_schemas.BYTES, b'test')
 
     def test_fixed(self):
         names = schema.Names()
@@ -121,7 +177,7 @@ class AvroTests(TestCase):
         self.assertListEqual(node.get_list().get_values().tolist(), ['b'])
 
     def test_list(self):
-        list_schema = schema.ArraySchema(schema.PrimitiveSchema(schema.INT))
+        list_schema = make_array_schema(primitive_schemas.INT)
         value = [1, 2]
         b = object(list_schema, value)
         node = bamboo_cpp.convert_avro(b)
@@ -129,7 +185,7 @@ class AvroTests(TestCase):
         self.assertListEqual(node.get_list().get_list().get_values().tolist(), value)
 
     def test_null(self):
-        union_schema = schema.UnionSchema([schema.PrimitiveSchema(schema.INT), schema.PrimitiveSchema(schema.NULL)])
+        union_schema = make_union_schema([primitive_schemas.INT, primitive_schemas.NULL])
         value = 1
         values = [value, None]
         b = object(union_schema, values, True)
@@ -140,20 +196,20 @@ class AvroTests(TestCase):
 
     def test_flatten(self):
         field_name = 'a'
-        b = simple_object(field_name, schema.INT, 3)
+        b = simple_object(field_name, primitive_schemas.INT, 3)
         node = from_avro(b)
         df = node.flatten()
         df_equality(self, {'a': [3]}, df)
 
     def test_perf(self):
         field_name = 'a'
-        n = 10_000_000
+        n = 10000000
         value = 2
-        b = write_n_simple_objects(field_name, schema.INT, n, value)
+        b = write_n_simple_objects(field_name, primitive_schemas.INT, n, value)
         buf = b.getvalue()
-        start = perf_counter()
+        start = clock()
         node = bamboo_cpp.convert_avro(BytesIO(buf))
-        end = perf_counter()
+        end = clock()
         bamboo_time = end - start
         list_node = node.get_list()
         primitive_node = list_node.get_field(field_name)
@@ -161,11 +217,11 @@ class AvroTests(TestCase):
 
         result = np.ndarray((n,))
         i = 0
-        start = perf_counter()
+        start = clock()
         for record in reader(b):
             result[i] = record['a']
             i = i + 1
-        end = perf_counter()
+        end = clock()
         fastavro_time = end - start
         self.assertListEqual(result.tolist(), [value] * n)
 

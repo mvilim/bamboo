@@ -236,8 +236,13 @@ class FlattenTests(TestCase):
         d = [c, c]
         c = {'d': d, 'e': 2.0}
         node = from_object(c)
+        elements = list()
+        strings = {'d': '- d []\n    - b []float64', 'e': '- e float64'}
+        for key in node._children:
+            elements.append(strings[key])
+        s = '\n'.join(elements)
         text = str(node)
-        self.assertEqual('- d []\n    - b []float64\n- e float64', text)
+        self.assertEqual(s, text)
 
     def test_prim_only(self):
         a = [1, 2, 3]

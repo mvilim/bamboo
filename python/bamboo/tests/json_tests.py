@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import six
+
 from unittest import TestCase
 
 import json
@@ -30,7 +32,7 @@ from bamboo.tests.test_utils import df_equality
 class JsonTests(TestCase):
     def convert_obj(self, obj):
         jsons = json.dumps(obj)
-        json_stream = io.BytesIO(bytes(jsons, 'utf8'))
+        json_stream = io.BytesIO(six.ensure_binary(jsons, 'utf8'))
 
         return bamboo_cpp.convert_json(json_stream)
 

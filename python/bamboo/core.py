@@ -15,39 +15,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from io import IOBase, BytesIO
-from typing import Type, Union
-
-from bamboo.nodes import IncompleteNode, Node
-from bamboo.nodes import build
-from bamboo.converters.obj import PythonObjConverter
-from bamboo.converters.extensions import convert_extension_node
-
 import bamboo_cpp_bind as bamboo_cpp
 
+import six
+from io import BytesIO
 
-def from_object(obj, dict_as_record=True) -> Node:
+from bamboo.converters.extensions import convert_extension_node
+from bamboo.converters.obj import PythonObjConverter
+from bamboo.nodes import IncompleteNode
+from bamboo.nodes import build
+
+
+def from_object(obj, dict_as_record=True):
     node = IncompleteNode.create()
     converter = PythonObjConverter(dict_as_record)
     return build(obj, node, converter)
 
 
-def from_avro(s: Type[IOBase]) -> Node:
+def from_avro(s):
     extension_node = bamboo_cpp.convert_avro(s)
     return convert_extension_node(extension_node)
 
 
-def from_arrow(s: Type[IOBase]) -> Node:
+def from_arrow(s):
     return convert_extension_node(bamboo_cpp.convert_arrow(s))
 
 
-def from_pbd(s: Type[IOBase]) -> Node:
+def from_pbd(s):
     return convert_extension_node(bamboo_cpp.convert_pbd(s))
 
 
-def from_json(s: Union[str, Type[IOBase]]) -> Node:
+def from_json(s):
     if isinstance(s, str):
-        extension_node = bamboo_cpp.convert_json(BytesIO(bytes(s, 'utf8')))
+        extension_node = bamboo_cpp.convert_json(BytesIO(six.ensure_binary(s, 'utf-8')))
     else:
         extension_node = bamboo_cpp.convert_json(s)
     return convert_extension_node(extension_node)

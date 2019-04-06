@@ -28,15 +28,14 @@ from bamboo.tests.test_utils import df_equality
 
 
 class ArrowTests(TestCase):
-    def to_iostream(self, arr, field_name) -> io.BytesIO:
+    def to_iostream(self, arr, field_name):
         sink = pa.BufferOutputStream()
         batch = pa.RecordBatch.from_arrays([arr], [field_name])
         writer = pa.RecordBatchStreamWriter(sink, batch.schema)
         writer.write_batch(batch)
         writer.close()
         sink.flush()
-        b = bytes(sink.getvalue())
-        return io.BytesIO(b)
+        return io.BytesIO(sink.getvalue())
 
     def array_convert(self, arr):
         field_name = 'arr'
@@ -108,7 +107,7 @@ class ArrowTests(TestCase):
 
     def test_dictionary(self):
         indices = pa.array([0, 1, 0, 1, 2, 0, None, 2])
-        dictionary = pa.array(['foo', 'bar', 'baz'])
+        dictionary = pa.array([u'foo', u'bar', u'baz'])
         arr = pa.DictionaryArray.from_arrays(indices, dictionary)
         node = self.array_convert(arr)
         self.assertListEqual(node.get_values().tolist(), ['foo', 'bar', 'foo', 'bar', 'baz', 'foo', 'baz'])

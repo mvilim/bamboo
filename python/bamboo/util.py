@@ -15,26 +15,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import TypeVar, Generic
 import numpy as np
 
-V = TypeVar('V')
 
-
-class ArrayList(Generic[V]):
-    def __init__(self, values: np.ndarray, growth_rate: float = 1.5):
+class ArrayList:
+    def __init__(self, values, growth_rate=1.5):
         self.growth_rate = growth_rate
         self.size = values.size
         self.values = values
 
     @classmethod
-    def create(cls, dtype: np.dtype, growth_rate: float = 1.5):
+    def create(cls, dtype, growth_rate=1.5):
         dtype_to_use = dtype
         if dtype is str:
             dtype_to_use = object
         return ArrayList(np.ndarray(shape=[0], dtype=dtype_to_use), growth_rate)
 
-    def add(self, value: V):
+    def add(self, value):
         # should check if value is correct type
         self.size += 1
         if self.size > self.values.size:
@@ -50,7 +47,7 @@ class ArrayList(Generic[V]):
     def trim(self):
         self.values.resize([self.size])
 
-    def add_to_item(self, index: int, value: V):
+    def add_to_item(self, index, value):
         self.values[index] += value
 
     def array(self):

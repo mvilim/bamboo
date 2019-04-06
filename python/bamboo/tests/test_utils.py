@@ -15,13 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase
-
 import numpy as np
 
 
 # we should make failures from these assertions easier to understand (print the differences)
-def df_equality(test_case: TestCase, expected, df):
+def df_equality(test_case, expected, df):
     test_case.assertEqual(len(expected), len(df.columns))
     for key, value in expected.items():
         array = df[key]

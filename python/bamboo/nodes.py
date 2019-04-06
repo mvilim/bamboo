@@ -16,7 +16,6 @@
 # limitations under the License.
 
 from enum import Enum
-from typing import List, Union, Set, Dict, Callable, TypeVar, Generic, Type, Tuple, Optional, Iterable
 import pandas as pd
 import numpy as np
 from bamboo.util import ArrayList
@@ -29,10 +28,10 @@ class NullIndicator:
     def add_not_null(self):
         raise NotImplementedError('Must be overridden in subclass')
 
-    def not_null_indices(self) -> np.ndarray:
+    def not_null_indices(self):
         raise NotImplementedError('Must be overridden in subclass')
 
-    def size(self) -> int:
+    def size(self):
         raise NotImplementedError('Must be overridden in subclass')
 
     def null_size(self):
@@ -40,7 +39,7 @@ class NullIndicator:
 
 
 class IndexNullIndicator(NullIndicator):
-    def __init__(self, indices: ArrayList, size: int):
+    def __init__(self, indices, size):
         self._indices = indices
         self._size = size
 
@@ -51,7 +50,7 @@ class IndexNullIndicator(NullIndicator):
         self._indices.add(self._size)
         self._size += 1
 
-    def not_null_indices(self) -> np.ndarray:
+    def not_null_indices(self):
         all_indices = np.arange(0, self._size)
         null_indices = self._indices.values[:self._indices.size]
         return np.delete(all_indices, null_indices)
@@ -79,7 +78,7 @@ def fill_value(dtype):
         return None
 
 
-def expand_array_with_nulls(array: np.ndarray, nulls: NullIndicator):
+def expand_array_with_nulls(array, nulls):
     # inefficient to repeat expanding, should fix
     not_null_indices = nulls.not_null_indices()
     # fill value should be more explicitly handled
@@ -89,19 +88,19 @@ def expand_array_with_nulls(array: np.ndarray, nulls: NullIndicator):
 
 
 class Index:
-    def expand(self, values: np.ndarray):
+    def expand(self, values):
         raise NotImplementedError('Must be overridden in subclass')
 
-    def combine_index(self, index: 'Index'):
+    def combine_index(self, index):
         raise NotImplementedError('Must be overridden in subclass')
 
-    def add_list(self, length: int):
+    def add_list(self, length):
         raise NotImplementedError('Must be overridden in subclass')
 
     def add_to_list(self):
         raise NotImplementedError('Must be overridden in subclass')
 
-    def null_expand(self, nulls: NullIndicator):
+    def null_expand(self, nulls):
         raise NotImplementedError('Must be overridden in subclass')
 
 
@@ -114,10 +113,10 @@ class MixedIndex(Index):
 
 
 class OrderedRangeIndex(Index):
-    def expand(self, values: np.ndarray):
+    def expand(self, values):
         return values[np.repeat(np.arange(0, self.lengths.size), self.lengths.array())]
 
-    def combine_index(self, sub_index: 'Index'):
+    def combine_index(self, sub_index):
         if isinstance(sub_index, OrderedRangeIndex):
             # verify that these indices matches
             own_lengths = self.lengths.array()
@@ -133,16 +132,16 @@ class OrderedRangeIndex(Index):
         else:
             raise NotImplementedError('Mixed index expansion is not yet supported')
 
-    def __init__(self, lengths: ArrayList[int]):
+    def __init__(self, lengths):
         self.lengths = lengths
 
-    def add_list(self, length: int):
+    def add_list(self, length):
         self.lengths.add(length)
 
     def add_to_list(self):
         self.lengths.add_to_item(self.lengths.size, 1)
 
-    def null_expand(self, nulls: NullIndicator):
+    def null_expand(self, nulls):
         return OrderedRangeIndex(ArrayList(expand_array_with_nulls(self.lengths.array(), nulls)))
 
     @classmethod
@@ -172,20 +171,13 @@ class JoinType(Enum):
     OUTER = 2
 
 
-Clusion = Union[str, 'Node']
-
-
-class Indexed:
-    def __init__(self, index: Optional[Index]):
+class Indexed(object):
+    def __init__(self, index):
         self.index = index
 
 
-ColumnName = List[str]
-Column = Tuple[ColumnName, np.ndarray]
-
-
 class ResolvedColumnName:
-    def __init__(self, names: List[str]):
+    def __init__(self, names):
         self.names = list(names)
         # move at least the final name into the resolved name
         if len(self.names) > 0:
@@ -194,7 +186,7 @@ class ResolvedColumnName:
             self.resolved_name = None
 
 
-def column_names(strategy: NameStrategy, names: List[List[str]]) -> List[str]:
+def column_names(strategy, names):
     resolved_names = _column_names(strategy, names)
     # check that all names are unique
     if len(resolved_names) != len(set(resolved_names)):
@@ -202,7 +194,7 @@ def column_names(strategy: NameStrategy, names: List[List[str]]) -> List[str]:
     return resolved_names
 
 
-def _column_names(strategy: NameStrategy, names: List[List[str]]) -> List[str]:
+def _column_names(strategy, names):
     if strategy is NameStrategy.MULTI_INDEX:
         max_tuple_length = 0
         for name in names:
@@ -220,11 +212,11 @@ def _column_names(strategy: NameStrategy, names: List[List[str]]) -> List[str]:
         return resolved_names
 
 
-def _resolve_names(names: List[List[str]], verbose_resolution: bool):
+def _resolve_names(names, verbose_resolution):
     resolving_names = [ResolvedColumnName(name) for name in names]
     is_resolved = False
     while not is_resolved:
-        name_map: Dict[str, List[ResolvedColumnName]] = dict()
+        name_map = dict()
         for name in resolving_names:
             if name.resolved_name not in name_map:
                 name_map[name.resolved_name] = list()
@@ -247,36 +239,36 @@ def _resolve_names(names: List[List[str]], verbose_resolution: bool):
 
 
 class PartialFlatten(Indexed):
-    def __init__(self, columns: List[Column], index: Optional[Index]):
-        super().__init__(index)
-        self.columns: List[Column] = columns
+    def __init__(self, columns, index):
+        super(PartialFlatten, self).__init__(index)
+        self.columns = columns
 
     def is_empty(self):
         return not self.columns
 
-    def expand_null(self, nulls: NullIndicator) -> 'PartialFlatten':
+    def expand_null(self, nulls):
         if self.index is None:
             new_columns = [(name, expand_array_with_nulls(values, nulls)) for name, values in self.columns]
             return PartialFlatten(new_columns, None)
         else:
             return PartialFlatten(self.columns, self.index.null_expand(nulls))
 
-    def column_names(self, strategy: NameStrategy) -> Dict[Union[str, Tuple[str]], np.ndarray]:
+    def column_names(self, strategy):
         names = [name for name, value in self.columns]
         values = [value for name, value in self.columns]
         return dict(zip(column_names(strategy, names), values))
 
 
 class TextTree:
-    def __init__(self, text: Optional[str], parent_suffix: Optional[str], subnodes: List[Optional['TextTree']]):
+    def __init__(self, text, parent_suffix, subnodes):
         self.text = text
         self.parent_suffix = parent_suffix
         self.subnodes = subnodes
 
-    def render(self, indent: int = 0, indent_step: int = 4, prefix: str = '- ') -> str:
+    def render(self, indent=0, indent_step=4, prefix='- '):
         return self._render(indent, indent_step, prefix)
 
-    def _render(self, indent: int, indent_step: int, prefix: str) -> str:
+    def _render(self, indent, indent_step, prefix):
         suffix = self._render_suffix()
         if self.text is not None:
             new_indent = indent + indent_step
@@ -289,7 +281,7 @@ class TextTree:
         filtered = [node for node in nodes if node != '']
         return '\n'.join(filtered)
 
-    def _render_suffix(self, stop: bool = False):
+    def _render_suffix(self, stop=False):
         if self.text is not None and stop:
             return ''
         else:
@@ -301,11 +293,11 @@ class TextTree:
 
 
 class Node:
-    def flatten(self, flatten_strategy: FlattenStrategy = FlattenStrategy.FLATTEN_ALL,
-                name_strategy: NameStrategy = NameStrategy.CONCATENATE_CONFLICTS,
-                join: JoinType = JoinType.INNER,
-                include: Iterable[Clusion] = None,
-                exclude: Iterable[Clusion] = None) -> pd.DataFrame:
+    def flatten(self, flatten_strategy=FlattenStrategy.FLATTEN_ALL,
+                name_strategy=NameStrategy.CONCATENATE_CONFLICTS,
+                join=JoinType.INNER,
+                include=None,
+                exclude=None):
         if not include:
             include = set()
         if not exclude:
@@ -316,25 +308,25 @@ class Node:
         resolved = partial.column_names(name_strategy)
         return pd.DataFrame(resolved)
 
-    def _flatten_fields_without_lists(self, fields: List[PartialFlatten]):
+    def _flatten_fields_without_lists(self, fields):
         # this is messy: the expand_null handles creating the new index (which we know will be None), but we
         # throw those indices away because we merge the resulting columns
         columns = [(name, values) for field in fields for name, values in
                    field.expand_null(self._nulls).columns]
         return PartialFlatten(columns, None)
 
-    def _flatten(self, strategy: FlattenStrategy,
-                 join: JoinType,
-                 include: Set['Node'],
-                 exclude: ['Node'],
-                 implicit_include: bool) -> PartialFlatten:
+    def _flatten(self, strategy,
+                 join,
+                 include,
+                 exclude,
+                 implicit_include):
         if join is JoinType.OUTER:
             raise NotImplementedError('Outer join is not yet implemented')
         # should change this to make a first pass without actual flattening (so that we don't waste computation effort)
         # should compound nulls and indices downwards instead of upwards (to save on repeated work)
 
-        explicit_include = self in include
-        explicit_exclude = self in exclude
+        explicit_include = id(self) in include
+        explicit_exclude = id(self) in exclude
         if explicit_include and explicit_exclude:
             raise AssertionError('Node is both explicitly included and excluded')
         included = explicit_include or (implicit_include and not explicit_exclude)
@@ -394,35 +386,35 @@ class Node:
             else:
                 return PartialFlatten([], None)
 
-    def _parse_clusion(self, clusion: Clusion) -> 'Node':
+    def _parse_clusion(self, clusion):
         if isinstance(clusion, str):
             splits = clusion.split('.', 1)
             subnode = self._get_subnode(splits[0])
             if len(splits) > 1:
                 return subnode._parse_clusion(splits[1])
             else:
-                return subnode
+                return id(subnode)
         elif isinstance(clusion, Node):
-            return clusion
+            return id(clusion)
 
-    def _get_subnode(self, name: str) -> 'Node':
+    def _get_subnode(self, name):
         raise NotImplementedError('Must be implemented in subclass')
 
-    def info(self, depth: int = 3, display_mem: bool = False) -> str:
+    def info(self, depth=3, display_mem=False):
         return self._info(depth, display_mem).render()
 
-    def _info(self, depth: int, display_mem: bool) -> TextTree:
+    def _info(self, depth, display_mem):
         raise NotImplementedError('Must be implemented in subclass')
 
     def __str__(self):
         return self.info()
 
-    def __getattr__(self, item) -> 'Node':
+    def __getattr__(self, item):
         return self._get_subnode(item)
 
 
 class Nullable:
-    def __init__(self, nulls: NullIndicator):
+    def __init__(self, nulls):
         self._nulls = nulls
 
     def _add_null(self):
@@ -431,75 +423,75 @@ class Nullable:
     def _add_not_null(self):
         self._nulls.add_not_null()
 
-    def _not_null_indices(self) -> np.ndarray:
+    def _not_null_indices(self):
         return self._nulls.not_null_indices()
 
-    def _size(self) -> int:
+    def _size(self):
         return self._nulls.size()
 
-    def _null_size(self) -> int:
+    def _null_size(self):
         return self._nulls.null_size()
 
 
 class RecordField(Node):
-    def __init__(self, name: str, value: Node):
+    def __init__(self, name, value):
         self._name = name
         self._value = value
 
-    def _get_subnode(self, name: str) -> 'Node':
+    def _get_subnode(self, name):
         return self._value._get_subnode(name)
 
-    def _info(self, depth: int, display_mem: bool) -> TextTree:
+    def _info(self, depth, display_mem):
         return TextTree(self._name, None, [self._value._info(depth, display_mem)])
 
 
 class RecordNode(Node, Nullable):
-    def __init__(self, children: List[RecordField], nulls: NullIndicator):
+    def __init__(self, children, nulls):
         # should check if any of these attribute names conflict
 
         Nullable.__init__(self, nulls)
         self._children = {c._name: c for c in children}
 
-    def _add_child(self, name: str):
+    def _add_child(self, name):
         child = RecordField(name, IncompleteNode.create())
         num_not_null = self._nulls.size() - self._nulls.null_size()
         for i in range(0, num_not_null):
             child._value._add_null()
         self._children[name] = child
 
-    def _get_subnode(self, name: str):
+    def _get_subnode(self, name):
         # this is not a node but a record field...
         return self._children[name]
 
-    def _contains(self, name: str) -> bool:
+    def _contains(self, name):
         return name in self._children
 
-    def _info(self, depth: int, display_mem: bool) -> TextTree:
+    def _info(self, depth, display_mem):
         child_info = [child._info(depth - 1, display_mem) for child in self._children.values()]
         return TextTree(None, None, child_info)
 
 
 class ListNode(Node, Nullable):
-    def __init__(self, child: Node, index: Index, nulls: NullIndicator):
+    def __init__(self, child, index, nulls):
         Nullable.__init__(self, nulls)
         self._child = child
         self._index = index
 
-    def _get_subnode(self, name: str):
+    def _get_subnode(self, name):
         return self._child._get_subnode(name)
 
-    def _add_list(self, values: List) -> None:
+    def _add_list(self, values):
         self._index.add_list(len(values))
 
-    def _add_to_list(self, values: List) -> None:
+    def _add_to_list(self, values):
         self._index.add_list(len(values))
 
-    def _info(self, depth: int, display_mem: bool) -> TextTree:
+    def _info(self, depth, display_mem):
         return TextTree(None, '[]', [self._child._info(depth, display_mem)])
 
 
 class PrimitiveNode(Node, Nullable):
-    def __init__(self, values: ArrayList, nulls: NullIndicator):
+    def __init__(self, values, nulls):
         Nullable.__init__(self, nulls)
         self._values = values
 
@@ -510,23 +502,23 @@ class PrimitiveNode(Node, Nullable):
         self._add_not_null()
         self._values.add(value)
 
-    def _get_subnode(self, name: str):
+    def _get_subnode(self, name):
         raise AssertionError('Primitive nodes do not have sub-nodes')
 
     # should change this so it can append some extra info to the above node (a list indicator)
-    def _info(self, depth: int, display_mem: bool) -> TextTree:
+    def _info(self, depth, display_mem):
         return TextTree(None, str(self._values.values.dtype), [])
 
 
 class IncompleteNode(Node, Nullable):
 
-    def __init__(self, nulls: NullIndicator):
+    def __init__(self, nulls):
         Nullable.__init__(self, nulls)
 
-    def _get_subnode(self, name: str) -> 'Node':
+    def _get_subnode(self, name):
         raise AssertionError('Incomplete nodes do not have sub-nodes')
 
-    def _info(self, depth: int, display_mem: bool) -> TextTree:
+    def _info(self, depth, display_mem):
         return TextTree(None, None, [])
 
     @classmethod
@@ -534,12 +526,9 @@ class IncompleteNode(Node, Nullable):
         return IncompleteNode(IndexNullIndicator.create())
 
 
-T = TypeVar('T')
-
-
-class Converter(Generic[T]):
-    def __init__(self, type_resolver: Callable[[T], Type[Node]], field_names: Callable[[T], List[str]],
-                 field_extractor: Callable[[T, str], T], list_extractor: Callable[[T], List[T]]):
+class Converter(object):
+    def __init__(self, type_resolver, field_names,
+                 field_extractor, list_extractor):
         self.type_resolver = type_resolver
         self.field_names = field_names
         self.field_extractor = field_extractor
@@ -547,7 +536,7 @@ class Converter(Generic[T]):
 
 
 # should we move into node class to avoid protected access warnings?
-def build(obj: T, node: Node, converter: Converter) -> Node:
+def build(obj, node, converter):
     obj_type = converter.type_resolver(obj)
     if obj_type is IncompleteNode:
         node._add_null()
@@ -563,8 +552,10 @@ def build(obj: T, node: Node, converter: Converter) -> Node:
             record_field = node._children[name]
             sub_node = record_field._value
             node._children[name] = RecordField(name, build(field, sub_node, converter))
-        for name in node._children.keys() - set(names):
-            node._children[name]._value._add_null()
+        snames = set(names)
+        for name in node._children.keys():
+            if name not in snames:
+                node._children[name]._value._add_null()
         node._add_not_null()
         return node
     elif obj_type is ListNode:

@@ -16,12 +16,10 @@
 # limitations under the License.
 
 from enum import Enum
-from typing import List, Type
-from bamboo.nodes import Node, IncompleteNode, ListNode, PrimitiveNode, RecordNode
 
 import numpy as np
 
-from bamboo.nodes import Converter
+from bamboo.nodes import IncompleteNode, ListNode, PrimitiveNode, RecordNode, Converter
 
 
 class KeyValuePair:
@@ -30,10 +28,9 @@ class KeyValuePair:
         self.value = value
 
 
-class PythonObjConverter(Converter[object]):
+class PythonObjConverter(Converter):
     def __init__(self, dict_as_record=True):
-        super().__init__(self.type, self.field_names, self.extract_field,
-                         self.extract_list)
+        super(PythonObjConverter, self).__init__(self.type, self.field_names, self.extract_field, self.extract_list)
         self.dict_as_record = dict_as_record
 
     def is_iterable_dict(self, obj):
@@ -46,7 +43,7 @@ class PythonObjConverter(Converter[object]):
         return isinstance(obj, list) or isinstance(obj, set) or self.is_iterable_dict(obj) \
                or self.is_numpy_iterable(obj)
 
-    def type(self, obj) -> Type[Node]:
+    def type(self, obj):
         if obj is None:
             return IncompleteNode
         elif self.is_iterable(obj):
@@ -56,19 +53,19 @@ class PythonObjConverter(Converter[object]):
         else:
             return RecordNode
 
-    def field_names(self, obj) -> List[str]:
+    def field_names(self, obj):
         if isinstance(obj, dict):
             return list(obj.keys())
         else:
             return list(vars(obj).keys())
 
-    def extract_field(self, obj, name: str) -> List[str]:
+    def extract_field(self, obj, name):
         if isinstance(obj, dict):
             return obj[name]
         else:
             return vars(obj)[name]
 
-    def extract_list(self, obj) -> List:
+    def extract_list(self, obj):
         if self.is_iterable_dict(obj):
             pairs = list()
             for key, value in obj.items():
