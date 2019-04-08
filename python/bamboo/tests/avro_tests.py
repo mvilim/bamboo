@@ -203,7 +203,7 @@ class AvroTests(TestCase):
 
     def test_perf(self):
         field_name = 'a'
-        n = 10000000
+        n = 1000000
         value = 2
         b = write_n_simple_objects(field_name, primitive_schemas.INT, n, value)
         buf = b.getvalue()
