@@ -22,7 +22,7 @@ namespace json {
 
 using value_t = json::detail::value_t;
 
-unique_ptr<Node> convert(std::istream& is) {
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter) {
     json::json j;
     is >> j;
     JsonConverter converter;

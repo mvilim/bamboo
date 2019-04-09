@@ -118,7 +118,7 @@ class PBDConverter final : public virtual Converter<Datum&, FieldIterator, ListI
     virtual ~PBDConverter() final override = default;
 };
 
-unique_ptr<Node> convert(std::istream& is);
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter);
 
 }  // namespace pbd
 }  // namespace bamboo

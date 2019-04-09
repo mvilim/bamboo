@@ -289,7 +289,7 @@ unique_ptr<Node> convert(const Array& array) {
     }
 }
 
-unique_ptr<Node> convert(std::istream& is) {
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter) {
     std::shared_ptr<RecordBatchReader> output;
     std::shared_ptr<ArrowInputStream> ais = std::make_shared<ArrowInputStream>(is);
     std::shared_ptr<InputStream> ais_base = std::static_pointer_cast<InputStream>(ais);

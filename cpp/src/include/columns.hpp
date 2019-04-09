@@ -1,14 +1,14 @@
 // Copyright (c) 2019 Michael Vilim
-// 
+//
 // This file is part of the bamboo library. It is currently hosted at
 // https://github.com/mvilim/bamboo
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //    http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,9 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 #include <util.hpp>
+#include <vector>
+#include <iostream>
 
 namespace bamboo {
 
@@ -264,14 +265,15 @@ class Node : public NullIndicator {
 
     Node(ObjType type) : type(type){};
 
-    Node(ObjType type, NullIndicator&& null_indicator) : NullIndicator(std::move(null_indicator)), type(type){};
+    Node(ObjType type, NullIndicator&& null_indicator)
+        : NullIndicator(std::move(null_indicator)), type(type){};
 };
 
 class IncompleteNode : public Node, Visitable<IncompleteNode> {
    public:
     virtual ~IncompleteNode() = default;
 
-    IncompleteNode(Node&& source) : Node(ObjType::INCOMPLETE, std::move(source)) {};
+    IncompleteNode(Node&& source) : Node(ObjType::INCOMPLETE, std::move(source)){};
 
     IncompleteNode() : Node(ObjType::INCOMPLETE){};
 };
@@ -284,7 +286,7 @@ class PrimitiveNode : public Node, Visitable<PrimitiveNode> {
 
     PrimitiveNode() : Node(ObjType::PRIMITIVE){};
 
-    PrimitiveNode(Node&& source) : Node(ObjType::PRIMITIVE, std::move(source)) {};
+    PrimitiveNode(Node&& source) : Node(ObjType::PRIMITIVE, std::move(source)){};
 
     PrimitiveType get_type();
 
@@ -304,8 +306,10 @@ class PrimitiveNode : public Node, Visitable<PrimitiveNode> {
         if (values->type == PrimitiveType::EMPTY) {
             init<T>();
         }
-        // this check should be reversed, as it is not injective in this direction. we should look at the defined abstract type (PrimitiveType) and verify that its underlying storage type matches the passed variable type
-        // we can probably use the add_by_type (and derive the type from the data type to abstract type template mappings)
+        // this check should be reversed, as it is not injective in this direction. we should look
+        // at the defined abstract type (PrimitiveType) and verify that its underlying storage type
+        // matches the passed variable type we can probably use the add_by_type (and derive the type
+        // from the data type to abstract type template mappings)
         PrimitiveType prim_type = primitive_enum(t);
         if (values->type == prim_type) {
             add_unsafe(t);
@@ -344,7 +348,7 @@ class ListNode : public Node, Visitable<ListNode> {
 
     ListNode() : Node(ObjType::LIST){};
 
-    ListNode(Node&& source) : Node(ObjType::LIST, std::move(source)) {};
+    ListNode(Node&& source) : Node(ObjType::LIST, std::move(source)){};
 
     unique_ptr<Node>& get_list();
 
@@ -365,7 +369,7 @@ class RecordNode : public Node, Visitable<ListNode> {
 
     RecordNode(vector<string> names);
 
-    RecordNode(Node&& source) : Node(ObjType::RECORD, std::move(source)) {};
+    RecordNode(Node&& source) : Node(ObjType::RECORD, std::move(source)){};
 
     virtual ~RecordNode() = default;
 
@@ -388,6 +392,30 @@ class NodeBuilder : public Visitor<PrimitiveNode>,
     void visit(ListNode& node);
 
     void visit(RecordNode& node);
+};
+
+struct ColumnFilter {
+    bool explicitly_include;
+    bool explicitly_exclude;
+    const map<const string, const shared_ptr<ColumnFilter>> field_filters;
+
+    ColumnFilter(bool explicitly_include, bool explicitly_exclude,
+                   const map<const string, const shared_ptr<ColumnFilter>> field_filters)
+        : explicitly_include(explicitly_include),
+          explicitly_exclude(explicitly_exclude),
+          field_filters(field_filters) {
+        if (explicitly_include && explicitly_exclude) {
+            throw std::runtime_error("Cannot both explicitly include and exclude a field");
+        }
+    }
+
+    bool has_includes() const {
+        bool has_includes = explicitly_include;
+        for (const auto& field : field_filters) {
+            has_includes |= (field.second && field.second->has_includes());
+        }
+        return has_includes;
+    }
 };
 
 template <class T> class ValueIterator {

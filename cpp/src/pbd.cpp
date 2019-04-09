@@ -22,7 +22,7 @@ namespace pbd {
 
 using namespace ::pbd;
 
-unique_ptr<Node> convert(std::istream& is) {
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter) {
     PBDReader reader(is);
     PBDConverter converter;
     unique_ptr<Node> node = make_unique<IncompleteNode>();
@@ -178,8 +178,6 @@ void PBDConverter::add_primitive(PrimitiveNode& v, Datum& datum) {
             throw std::runtime_error("Unexpected primitive type");
     }
 }
-
-unique_ptr<Node> convert(std::istream& is);
 
 }  // namespace pbd
 }  // namespace bamboo

@@ -1,14 +1,14 @@
 // Copyright (c) 2019 Michael Vilim
-// 
+//
 // This file is part of the bamboo library. It is currently hosted at
 // https://github.com/mvilim/bamboo
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //    http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,8 @@ namespace avro {
 namespace direct {
 
 // this union checking adds a non-inconsequential cost for tight loops on simple datamodels. it
-// would be better if we could check it with closer to zero cost (perhaps inside the type classifier)
+// would be better if we could check it with closer to zero cost (perhaps inside the type
+// classifier)
 static const CNode& resolve_if_union(const CNode& datum) {
     if (datum.type() == AVRO_UNION) {
         return resolve_union(datum);
@@ -100,8 +101,68 @@ void initialize(const NodePtr& schema, unique_ptr<Node>& node) {
     }
 }
 
-unique_ptr<Node> convert(std::istream& is, boost::optional<const ValidSchema> schema) {
-    DataFileReaderBase rb(is, "unidentified stream");
+const NodePtr column_filtered(const NodePtr& schema, const ColumnFilter* column_filter,
+                              bool implicit_include) {
+    if (!column_filter) {
+        if (implicit_include) {
+            return schema;
+        }
+        return NodePtr();
+    }
+
+    bool explicit_include = column_filter && column_filter->explicitly_include;
+    bool explicit_exclude = column_filter && column_filter->explicitly_exclude;
+    bool included = explicit_include || (implicit_include && !explicit_exclude);
+
+    switch (schema->type()) {
+        case AVRO_RECORD: {
+            NodePtr node;
+            for (size_t i = 0; i < schema->leaves(); i++) {
+                const ColumnFilter* field_filter = nullptr;
+                const string& field_name = schema->nameAt(i);
+                if (column_filter && column_filter->field_filters.count(field_name)) {
+                    field_filter = column_filter->field_filters.at(field_name).get();
+                }
+
+                const NodePtr field_schema =
+                    column_filtered(schema->leafAt(i), field_filter, included);
+                if (field_schema) {
+                    if (!node) {
+                        node = NodePtr(new NodeRecord());
+                        node->setName(schema->name());
+                    }
+                    node->addLeaf(field_schema);
+                    node->addName(schema->nameAt(i));
+                }
+            }
+            return node;
+        }
+        case AVRO_ARRAY: {
+            const NodePtr list =
+                column_filtered(schema->leafAt(0), column_filter, implicit_include);
+            if (list) {
+                const NodePtr node(new NodeArray());
+                node->addLeaf(list);
+                return node;
+            }
+            break;
+        }
+        default:
+            if (included) {
+                return schema;
+            }
+            break;
+    }
+    return NodePtr();
+}
+
+const NodePtr column_filtered(const ValidSchema& dataSchema,
+                              const ColumnFilter* column_filter) {
+    return column_filtered(dataSchema.root(), column_filter,
+                           !column_filter || !column_filter->has_includes());
+}
+
+unique_ptr<Node> convert(DataFileReaderBase& rb, boost::optional<const ValidSchema> schema) {
     if (schema) {
         rb.init(schema.get());
     } else {
@@ -121,11 +182,27 @@ unique_ptr<Node> convert(std::istream& is, boost::optional<const ValidSchema> sc
     node->add_list(counter);
     node->add_not_null();
     rb.close();
-    return std::move(node);
+    return node;
 }
 
-unique_ptr<Node> convert_with_schema(std::istream& is, const ValidSchema& schema) {
-    return convert(is, boost::optional<const ValidSchema>(schema));
+// this will require C++17 (which makes copy elison required in this situation)
+// DataFileReaderBase reader(std::istream& is) {
+//     return DataFileReaderBase(is, "unidentified stream");
+// }
+
+unique_ptr<Node> convert(std::istream& is, boost::optional<const ValidSchema> schema) {
+    DataFileReaderBase rb(is, "unidentified stream");
+    return convert(rb, schema);
+}
+
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter) {
+    DataFileReaderBase rb(is, "unidentified stream");
+    const NodePtr schema = column_filtered(rb.dataSchema(), column_filter);
+    if (schema) {
+        return convert(rb, ValidSchema(schema));
+    } else {
+        return std::make_unique<IncompleteNode>();
+    }
 }
 
 unique_ptr<Node> convert(std::istream& is) {

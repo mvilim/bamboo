@@ -93,7 +93,7 @@ class JsonConverter final : public virtual Converter<json::json&, FieldIterator,
     virtual ~JsonConverter() final override = default;
 };
 
-unique_ptr<Node> convert(std::istream& is);
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter);
 
 }  // namespace json
 }  // namespace bamboo

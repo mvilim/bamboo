@@ -24,6 +24,7 @@ from bamboo.converters.extensions import convert_extension_node
 from bamboo.converters.obj import PythonObjConverter
 from bamboo.nodes import IncompleteNode
 from bamboo.nodes import build
+from bamboo.clusions import convert_clusions
 
 
 def from_object(obj, dict_as_record=True):
@@ -32,8 +33,8 @@ def from_object(obj, dict_as_record=True):
     return build(obj, node, converter)
 
 
-def from_avro(s):
-    extension_node = bamboo_cpp.convert_avro(s)
+def from_avro(s, include=None, exclude=None):
+    extension_node = bamboo_cpp.convert_avro(s, convert_clusions(include, exclude))
     return convert_extension_node(extension_node)
 
 

@@ -229,6 +229,11 @@ class FlattenTests(TestCase):
         flattened = node.flatten(include=['b'])
         self.df_equality({'b': [2, 3, 2, 4]}, flattened)
 
+    def test_incomplete_node(self):
+        node = from_object([])
+        flattened = node.flatten()
+        self.df_equality({}, flattened)
+
     def test_str(self):
         a = 1.0
         b = [a, a, a]

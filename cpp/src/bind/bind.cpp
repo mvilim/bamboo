@@ -154,15 +154,17 @@ class PythonBufferStream {
 
 constexpr size_t DEFAULT_BUFFER_SIZE = 65536;
 
-static auto convert(std::function<unique_ptr<Node>(std::istream&)> converter) {
-    return [converter](py::object stream) -> unique_ptr<Node> {
-        // the large buffer is necessary to amortize the cost of a
-        // locking stream buffer managed on the Python side (the larger the
-        // buffer, the fewer times we run python code)
-        io::stream<PythonBufferStream> is(PythonBufferStream(stream), DEFAULT_BUFFER_SIZE);
-        is.exceptions(std::istream::badbit);
-        return converter(is);
-    };
+static auto convert(
+    std::function<unique_ptr<Node>(std::istream&, const ColumnFilter*)> converter) {
+    return
+        [converter](py::object stream, const ColumnFilter* column_filter) -> unique_ptr<Node> {
+            // the large buffer is necessary to amortize the cost of a
+            // locking stream buffer managed on the Python side (the larger the
+            // buffer, the fewer times we run python code)
+            io::stream<PythonBufferStream> is(PythonBufferStream(stream), DEFAULT_BUFFER_SIZE);
+            is.exceptions(std::istream::badbit);
+            return converter(is, column_filter);
+        };
 }
 
 py::object extract_values(PrimitiveVector& vec) {
@@ -215,6 +217,9 @@ py::object get_node_enum_values(PrimitiveNode& node) {
     return get_enum_values(*node.get_vector());
 };
 
+static const py::arg stream_arg = py::arg("input_stream");
+static const py::arg_v column_filter_arg = py::arg("column_filter") = nullptr;
+
 PYBIND11_MODULE(bamboo_cpp_bind, m) {
     sbuffer<size_t>(m);
     sbuffer<int8_t>(m);
@@ -237,6 +242,9 @@ PYBIND11_MODULE(bamboo_cpp_bind, m) {
              py::return_value_policy::reference_internal)
         .def("get_list", [](ListNode& node) -> Node& { return *node.get_list(); },
              py::return_value_policy::reference_internal);
+
+    py::class_<ColumnFilter, shared_ptr<ColumnFilter>>(m, "ColumnFilter")
+        .def(py::init<bool, bool, const map<const string, const shared_ptr<ColumnFilter>>>());
 
     py::class_<RecordNode>(m, "RecordNode")
         .def("get_size", [](RecordNode& node) { return get_size(node); })
@@ -289,13 +297,13 @@ PYBIND11_MODULE(bamboo_cpp_bind, m) {
         .def("get_null_indices", [](IncompleteNode& node) { return get_indices(node); },
              py::return_value_policy::reference_internal);
 
-    m.def("convert_avro", convert(bamboo::avro::direct::convert));
+    m.def("convert_avro", convert(bamboo::avro::direct::convert), stream_arg, column_filter_arg);
 
-    m.def("convert_arrow", convert(bamboo::arrow::convert));
+    m.def("convert_arrow", convert(bamboo::arrow::convert), stream_arg, column_filter_arg);
 
-    m.def("convert_json", convert(bamboo::json::convert));
+    m.def("convert_json", convert(bamboo::json::convert), stream_arg, column_filter_arg);
 
-    m.def("convert_pbd", convert(bamboo::pbd::convert));
+    m.def("convert_pbd", convert(bamboo::pbd::convert), stream_arg, column_filter_arg);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

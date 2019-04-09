@@ -50,8 +50,8 @@ if sys.version_info > (3, 0):
     primitive_schemas.BYTES = schema.PrimitiveSchema(schema.BYTES)
     primitive_schemas.NULL = schema.PrimitiveSchema(schema.NULL)
 
-    def make_field(field_name, field_schema):
-        return schema.Field(field_schema, field_name, 0, False)
+    def make_field(field_name, field_schema, names=None):
+        return schema.Field(field_schema, field_name, 0, False, names=names, default=None)
 
     def make_file_writer(out, datum_writer, datum_schema):
         return datafile.DataFileWriter(out, datum_writer, writer_schema=datum_schema)
@@ -73,8 +73,10 @@ else:
     primitive_schemas.BYTES = 'bytes'
     primitive_schemas.NULL = 'null'
 
-    def make_field(field_name, field_schema):
-        return schema.Field(field_schema, field_name, 0, False).to_json()
+    def make_field(field_name, field_schema, names=None):
+        if isinstance(field_schema, schema.RecordSchema):
+            field_schema = field_schema.fullname
+        return schema.Field(field_schema, field_name, False, names=names, default=None).to_json()
 
     def make_file_writer(out, datum_writer, datum_schema):
         return datafile.DataFileWriter(out, datum_writer, writers_schema=datum_schema)
@@ -200,6 +202,52 @@ class AvroTests(TestCase):
         node = from_avro(b)
         df = node.flatten()
         df_equality(self, {'a': [3]}, df)
+
+    def test_column_filter(self):
+        field_name = 'a'
+        b = simple_object(field_name, primitive_schemas.INT, 3)
+        node = from_avro(b)
+        df = node.flatten()
+        df_equality(self, {'a': [3]}, df)
+
+        b = simple_object(field_name, primitive_schemas.INT, 3)
+        node = from_avro(b, exclude={'a': {}})
+        df = node.flatten()
+        df_equality(self, {}, df)
+
+        b = simple_object(field_name, primitive_schemas.INT, 3)
+        node = from_avro(b, exclude=['a'])
+        df = node.flatten()
+        df_equality(self, {}, df)
+
+    def test_deep_column_filter(self):
+        names = schema.Names()
+        ia = 'ia'
+        ib = 'ib'
+        oa = 'oa'
+        ob = 'ob'
+        inner_a = make_field(ia, primitive_schemas.INT, names=names)
+        inner_b = make_field(ib, primitive_schemas.INT, names=names)
+        inner_a_record = schema.RecordSchema('inner_a', 'test', [inner_a, inner_b], names=names)
+        inner_b_record = schema.RecordSchema('inner_b', 'test', [inner_a, inner_b], names=names)
+        outer_a = make_field(oa, inner_a_record, names=names)
+        outer_b = make_field(ob, inner_b_record, names=names)
+        outer_record = schema.RecordSchema('outer', 'test', [outer_a, outer_b], names=schema.Names())
+
+        b = object(outer_record, {oa: {ia: 1, ib: 2}, ob: {ia: 3, ib: 4}})
+        node = from_avro(b)
+        df = node.flatten()
+        df_equality(self, {oa + '_' + ia: [1], oa + '_' + ib: [2], ob + '_' + ia: [3], ob + '_' + ib: [4]}, df)
+
+        b = object(outer_record, {oa: {ia: 1, ib: 2}, ob: {ia: 3, ib: 4}})
+        node = from_avro(b, exclude='oa')
+        df = node.flatten()
+        df_equality(self, {ia: [3], ib: [4]}, df)
+
+        b = object(outer_record, {oa: {ia: 1, ib: 2}, ob: {ia: 3, ib: 4}})
+        node = from_avro(b, exclude='oa', include=[{}, 'oa.ia'])
+        df = node.flatten()
+        df_equality(self, {oa + '_' + ia: [1], ob + '_' + ia: [3], ib: [4]}, df)
 
     def test_perf(self):
         field_name = 'a'
