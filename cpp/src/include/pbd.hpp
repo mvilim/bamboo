@@ -25,30 +25,44 @@ namespace pbd {
 
 namespace pb = google::protobuf;
 
+using Limit = pb::io::CodedInputStream::Limit;
+using WireType = pb::internal::WireFormatLite::WireType;
+
 struct Datum {
-    const pb::Message& message;
-    const pb::FieldDescriptor* field = nullptr;
-    int64_t counter = -1;
+    pb::io::CodedInputStream& stream;
+    const pb::Descriptor* descriptor;
 
-    Datum(const pb::Message& message) : message(message){};
+    int message_size = -1;
+    vector<bool> field_processed;
+    bool reading_list = false;
+    bool reading_missing;
 
-    Datum(const pb::Message& message, const pb::FieldDescriptor* field)
-        : message(message), field(field), counter(0){};
+    const pb::FieldDescriptor* field;
+    unsigned char wire_type;
+
+    Datum(pb::io::CodedInputStream& stream, const pb::Descriptor* descriptor,
+          bool reading_missing = false)
+        : Datum(stream, descriptor, nullptr, reading_missing){};
+
+    // can reset with
+    // field_processed.assign(field_processed.size(), false);
+
+    Datum(pb::io::CodedInputStream& stream, const pb::Descriptor* descriptor,
+          const pb::FieldDescriptor* field, bool reading_missing = false)
+        : stream(stream), descriptor(descriptor), field(field), reading_missing(reading_missing) {
+        field_processed = vector<bool>(descriptor->field_count(), false);
+    };
 };
 
-typedef KeyValueIterator<const string, Datum&> FieldIteratorType;
+typedef KeyValueIterator<const int, Datum&> FieldIteratorType;
 typedef ValueIterator<Datum&> ListIteratorType;
+
+// we can probably reuse the iterator instances (by building the schema with all necessary
+// references at the beginning)
 
 static inline Datum selectDatum(Datum& datum) {
     if (datum.field) {
-        if (datum.field->is_repeated()) {
-            const pb::Message& message = datum.message.GetReflection()->GetRepeatedMessage(
-                datum.message, datum.field, datum.counter);
-        }
-        const pb::Message& message =
-            datum.message.GetReflection()->GetMessage(datum.message, datum.field);
-        return Datum(message);
-
+        return Datum(datum.stream, datum.field->message_type(), datum.reading_missing);
     } else {
         return datum;
     }
@@ -56,51 +70,145 @@ static inline Datum selectDatum(Datum& datum) {
 
 class FieldIterator final : public FieldIteratorType {
     Datum datum;
-    size_t field_counter = 0;
+    Limit limit;
+    int field_index;
+    vector<bool>::iterator begin;
+    vector<bool>::iterator end;
+    vector<bool>::iterator current;
 
    public:
-    FieldIterator(Datum& datum) : datum(selectDatum(datum)){};
-
-    virtual ~FieldIterator() final override = default;
-
-    virtual bool next() final override {
-        if (field_counter < datum.message.GetDescriptor()->field_count()) {
-            datum.field = datum.message.GetDescriptor()->field(field_counter++);
-            return true;
+    FieldIterator(Datum& input_datum) : datum(selectDatum(input_datum)) {
+        if (datum.message_size < 0) {
+            if (datum.reading_missing) {
+                datum.message_size = 0;
+            } else {
+                if (!datum.stream.ReadVarintSizeAsInt(&datum.message_size)) {
+                    throw std::runtime_error("Unable to read nested message size");
+                }
+            }
         }
-        return false;
+
+        limit = datum.stream.PushLimit(datum.message_size);
+    };
+
+    ~FieldIterator() final override = default;
+
+    bool nextMissing() {
+        current = std::find(current, end, false);
+        field_index = std::distance(begin, current);
+        if (field_index == datum.field_processed.size()) {
+            datum.stream.CheckEntireMessageConsumedAndPopLimit(limit);
+            return false;
+        }
+        current++;
+        datum.field = datum.descriptor->field(field_index);
+        return true;
     }
 
-    // should probably change this to be an index
-    virtual const string key() final override {
-        return datum.field->name();
+    bool next() final override {
+        while (true) {
+            if (datum.reading_missing) {
+                return nextMissing();
+            }
+
+            uint32_t tag = datum.stream.ReadTagNoLastTag();
+
+            if (tag == 0) {
+                datum.reading_missing = true;
+                begin = datum.field_processed.begin();
+                end = datum.field_processed.end();
+                current = begin;
+
+                return nextMissing();
+            }
+
+            unsigned char wire_type = tag & 0x07;
+            uint32_t field_number = tag >> 3;
+            // should not be mutating the field
+            datum.field = datum.descriptor->FindFieldByNumber(field_number);
+            if (!datum.field) {
+                // discard the unnecessary data
+                switch (wire_type) {
+                    case WireType::WIRETYPE_VARINT: {
+                        uint32_t unused;
+                        datum.stream.ReadVarint32(&unused);
+                        break;
+                    }
+                    case WireType::WIRETYPE_FIXED64: {
+                        datum.stream.Skip(sizeof(uint64_t));
+                        break;
+                    }
+                    case WireType::WIRETYPE_LENGTH_DELIMITED: {
+                        int size;
+                        datum.stream.ReadVarintSizeAsInt(&size);
+                        datum.stream.Skip(size);
+                        break;
+                    }
+                    case WireType::WIRETYPE_START_GROUP: {
+                        throw std::runtime_error("Groups not supported");
+                    }
+                    case WireType::WIRETYPE_END_GROUP: {
+                        throw std::runtime_error("Groups not supported");
+                    }
+                    case WireType::WIRETYPE_FIXED32: {
+                        datum.stream.Skip(sizeof(uint32_t));
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error("Unexpected wire type");
+                }
+            } else {
+                field_index = datum.field->index();
+                datum.wire_type = wire_type;
+                datum.field_processed[field_index] = true;
+                return true;
+            }
+        }
     }
 
-    virtual Datum& value() final override {
+    const int key() final override {
+        return field_index;
+    }
+
+    Datum& value() final override {
         return datum;
     }
 };
 
 class ListIterator final : public ListIteratorType {
-    size_t count;
+    int size;
+    int counter = -1;
     Datum datum;
 
    public:
-    ListIterator(Datum& datum)
-        : datum(Datum(datum.message, datum.field)),
-          count(datum.message.GetReflection()->FieldSize(datum.message, datum.field)){};
-
-    virtual ~ListIterator() final override = default;
-
-    virtual bool next() override {
+    ListIterator(Datum input_datum)
+        : datum(input_datum.stream, input_datum.descriptor, input_datum.field,
+                input_datum.reading_missing) {
         if (!datum.field || !datum.field->is_repeated()) {
             throw std::runtime_error("Not a repeated field");
         }
 
-        return datum.counter < count;
+        datum.reading_list = true;
+        if (datum.reading_missing) {
+            size = 0;
+        } else {
+            if (input_datum.wire_type == WireType::WIRETYPE_LENGTH_DELIMITED &&
+                datum.field->is_packable()) {
+                size = datum.stream.ReadVarintSizeAsInt(&size);
+            } else {
+                size = 1;
+            }
+        }
     };
 
-    virtual Datum& value() override {
+    ~ListIterator() final override = default;
+
+    bool next() final override {
+        bool result = counter++ < size;
+        return result;
+    };
+
+    Datum& value() final override {
         return datum;
     }
 };
