@@ -79,12 +79,15 @@ def fill_value(dtype):
 
 
 def expand_array_with_nulls(array, nulls):
-    # inefficient to repeat expanding, should fix
-    not_null_indices = nulls.not_null_indices()
-    # fill value should be more explicitly handled
-    values = np.full(nulls.size(), fill_value(array.dtype))
-    values[not_null_indices] = array
-    return values
+    if nulls.null_size() == 0:
+        return array
+    else:
+        # inefficient to repeat expanding, should fix
+        not_null_indices = nulls.not_null_indices()
+        # fill value should be more explicitly handled
+        values = np.full(nulls.size(), fill_value(array.dtype))
+        values[not_null_indices] = array
+        return values
 
 
 class Index:
@@ -114,7 +117,7 @@ class MixedIndex(Index):
 
 class OrderedRangeIndex(Index):
     def expand(self, values):
-        return values[np.repeat(np.arange(0, self.lengths.size), self.lengths.array())]
+        return values[np.repeat(np.arange(0, self.lengths.size), self.lengths.array().astype(np.int64))]
 
     def combine_index(self, sub_index):
         if isinstance(sub_index, OrderedRangeIndex):
@@ -124,7 +127,7 @@ class OrderedRangeIndex(Index):
                 raise ValueError('Malformed index')
             # need to double check that this performance is full numpy
             new_lengths = np.zeros(shape=[own_lengths.size], dtype=np.uint32)
-            indices = np.repeat(np.arange(0, self.lengths.size), own_lengths)
+            indices = np.repeat(np.arange(0, self.lengths.size), own_lengths.astype(np.int64))
             np.add.at(new_lengths, indices, sub_index.lengths.array())
             if new_lengths.size != own_lengths.size:
                 raise ValueError('Index comptuation returned unexpected result')
