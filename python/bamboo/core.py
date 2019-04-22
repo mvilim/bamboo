@@ -42,8 +42,8 @@ def from_arrow(s):
     return convert_extension_node(bamboo_cpp.convert_arrow(s))
 
 
-def from_pbd(s):
-    return convert_extension_node(bamboo_cpp.convert_pbd(s))
+def from_pbd(s, include=None, exclude=None):
+    return convert_extension_node(bamboo_cpp.convert_pbd(s, convert_clusions(include, exclude)))
 
 
 def from_json(s):

@@ -28,29 +28,53 @@ namespace pb = google::protobuf;
 using Limit = pb::io::CodedInputStream::Limit;
 using WireType = pb::internal::WireFormatLite::WireType;
 
+struct FieldDescriptor;
+struct MessageDescriptor;
+
+struct FieldDescriptor {
+    const shared_ptr<const MessageDescriptor> message_type;
+    const pb::FieldDescriptor* pb_field;
+    const int index;
+
+    FieldDescriptor(const pb::FieldDescriptor* pb_field, int index,
+                    const ColumnFilter* column_filter, bool implicit_include);
+};
+
+struct MessageDescriptor {
+    const pb::Descriptor* pb_descriptor;
+    vector<shared_ptr<FieldDescriptor>> fields;
+    // the optimal map type here depends on the access pattern
+    map<int, FieldDescriptor*> number_to_field;
+
+    MessageDescriptor(const pb::Descriptor* pb_descriptor, const ColumnFilter* column_filter,
+                      bool implicit_include);
+
+    void add_field(const pb::FieldDescriptor* field, const ColumnFilter* column_filter,
+                   bool implicit_include);
+};
+
 struct Datum {
     pb::io::CodedInputStream& stream;
-    const pb::Descriptor* descriptor;
+    const MessageDescriptor* descriptor;
 
     int message_size = -1;
     vector<bool> field_processed;
     bool reading_list = false;
     bool reading_missing;
 
-    const pb::FieldDescriptor* field;
+    const FieldDescriptor* field;
     unsigned char wire_type;
 
-    Datum(pb::io::CodedInputStream& stream, const pb::Descriptor* descriptor,
+    Datum(pb::io::CodedInputStream& stream, const MessageDescriptor* descriptor,
           bool reading_missing = false)
         : Datum(stream, descriptor, nullptr, reading_missing){};
 
-    // can reset with
-    // field_processed.assign(field_processed.size(), false);
-
-    Datum(pb::io::CodedInputStream& stream, const pb::Descriptor* descriptor,
-          const pb::FieldDescriptor* field, bool reading_missing = false)
+    Datum(pb::io::CodedInputStream& stream, const MessageDescriptor* descriptor,
+          const FieldDescriptor* field, bool reading_missing = false)
         : stream(stream), descriptor(descriptor), field(field), reading_missing(reading_missing) {
-        field_processed = vector<bool>(descriptor->field_count(), false);
+        // can reset with
+        // field_processed.assign(field_processed.size(), false);
+        field_processed = vector<bool>(descriptor->fields.size(), false);
     };
 };
 
@@ -62,7 +86,10 @@ typedef ValueIterator<Datum&> ListIteratorType;
 
 static inline Datum selectDatum(Datum& datum) {
     if (datum.field) {
-        return Datum(datum.stream, datum.field->message_type(), datum.reading_missing);
+        if (!datum.field->message_type) {
+            throw std::runtime_error("missing message type");
+        }
+        return Datum(datum.stream, datum.field->message_type.get(), datum.reading_missing);
     } else {
         return datum;
     }
@@ -89,6 +116,9 @@ class FieldIterator final : public FieldIteratorType {
         }
 
         limit = datum.stream.PushLimit(datum.message_size);
+        begin = datum.field_processed.begin();
+        end = datum.field_processed.end();
+        current = begin;
     };
 
     ~FieldIterator() final override = default;
@@ -101,7 +131,8 @@ class FieldIterator final : public FieldIteratorType {
             return false;
         }
         current++;
-        datum.field = datum.descriptor->field(field_index);
+        datum.field = datum.descriptor->fields.at(field_index).get();
+
         return true;
     }
 
@@ -115,18 +146,25 @@ class FieldIterator final : public FieldIteratorType {
 
             if (tag == 0) {
                 datum.reading_missing = true;
-                begin = datum.field_processed.begin();
-                end = datum.field_processed.end();
-                current = begin;
 
                 return nextMissing();
             }
 
             unsigned char wire_type = tag & 0x07;
             uint32_t field_number = tag >> 3;
-            // should not be mutating the field
-            datum.field = datum.descriptor->FindFieldByNumber(field_number);
-            if (!datum.field) {
+
+            if (!datum.descriptor) {
+                throw std::runtime_error("Null descriptor");
+            }
+
+            if (datum.descriptor->number_to_field.count(field_number)) {
+                // should not be mutating the field
+                datum.field = datum.descriptor->number_to_field.at(field_number);
+                field_index = datum.field->index;
+                datum.wire_type = wire_type;
+                datum.field_processed[field_index] = true;
+                return true;
+            } else {
                 // discard the unnecessary data
                 switch (wire_type) {
                     case WireType::WIRETYPE_VARINT: {
@@ -157,11 +195,6 @@ class FieldIterator final : public FieldIteratorType {
                     default:
                         throw std::runtime_error("Unexpected wire type");
                 }
-            } else {
-                field_index = datum.field->index();
-                datum.wire_type = wire_type;
-                datum.field_processed[field_index] = true;
-                return true;
             }
         }
     }
@@ -184,7 +217,7 @@ class ListIterator final : public ListIteratorType {
     ListIterator(Datum input_datum)
         : datum(input_datum.stream, input_datum.descriptor, input_datum.field,
                 input_datum.reading_missing) {
-        if (!datum.field || !datum.field->is_repeated()) {
+        if (!datum.field || !datum.field->pb_field->is_repeated()) {
             throw std::runtime_error("Not a repeated field");
         }
 
@@ -193,7 +226,7 @@ class ListIterator final : public ListIteratorType {
             size = 0;
         } else {
             if (input_datum.wire_type == WireType::WIRETYPE_LENGTH_DELIMITED &&
-                datum.field->is_packable()) {
+                datum.field->pb_field->is_packable()) {
                 size = datum.stream.ReadVarintSizeAsInt(&size);
             } else {
                 size = 1;

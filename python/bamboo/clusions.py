@@ -109,4 +109,7 @@ def recurse_clusions(included, excluded):
             exclude_field = Clusion(False, {})
         fields[field] = recurse_clusions(include_field, exclude_field)
 
+    if included.explicit and excluded.explicit:
+        raise RuntimeError('Cannot both include and exclude a field')
+
     return bamboo_cpp.ColumnFilter(included.explicit, excluded.explicit, fields)
