@@ -182,7 +182,7 @@ unique_ptr<Node> convert(DataFileReaderBase& rb, boost::optional<const ValidSche
     node->add_list(counter);
     node->add_not_null();
     rb.close();
-    return node;
+    return std::move(node);
 }
 
 // this will require C++17 (which makes copy elison required in this situation)
@@ -201,7 +201,7 @@ unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter) {
     if (schema) {
         return convert(rb, ValidSchema(schema));
     } else {
-        return std::make_unique<IncompleteNode>();
+        return make_unique<IncompleteNode>();
     }
 }
 
