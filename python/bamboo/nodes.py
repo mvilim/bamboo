@@ -21,7 +21,7 @@ import numpy as np
 from bamboo.util import ArrayList
 
 
-class NullIndicator:
+class NullIndicator(object):
     def add_null(self):
         raise NotImplementedError('Must be overridden in subclass')
 
@@ -90,7 +90,7 @@ def expand_array_with_nulls(array, nulls):
         return values
 
 
-class Index:
+class Index(object):
     def expand(self, values):
         raise NotImplementedError('Must be overridden in subclass')
 
@@ -179,7 +179,7 @@ class Indexed(object):
         self.index = index
 
 
-class ResolvedColumnName:
+class ResolvedColumnName(object):
     def __init__(self, names):
         self.names = list(names)
         # move at least the final name into the resolved name
@@ -262,7 +262,7 @@ class PartialFlatten(Indexed):
         return dict(zip(column_names(strategy, names), values))
 
 
-class TextTree:
+class TextTree(object):
     def __init__(self, text, parent_suffix, subnodes):
         self.text = text
         self.parent_suffix = parent_suffix
@@ -295,7 +295,7 @@ class TextTree:
             return suffix + ''.join(suffixes)
 
 
-class Node:
+class Node(object):
     def flatten(self, flatten_strategy=FlattenStrategy.FLATTEN_ALL,
                 name_strategy=NameStrategy.CONCATENATE_CONFLICTS,
                 join=JoinType.INNER,
@@ -416,7 +416,7 @@ class Node:
         return self._get_subnode(item)
 
 
-class Nullable:
+class Nullable(object):
     def __init__(self, nulls):
         self._nulls = nulls
 

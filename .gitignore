@@ -12,5 +12,6 @@ _generate/
 *cdb.sh
 *rc.sh
 env/
+env2/
 compile_commands.json
 .idea
