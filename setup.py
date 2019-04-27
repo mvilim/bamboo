@@ -79,7 +79,7 @@ class CMakeBuild(build_ext):
                       '-DVERSION_INFO=' + self.distribution.get_version()]
 
         cfg = 'Debug' if self.debug else 'Release'
-        build_args = ['--config', cfg]
+        build_args = ['--config', cfg, '-j4']
 
         cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
 
