@@ -16,6 +16,7 @@ env:
     - CIBW_MANYLINUX1_X86_64_IMAGE=mvilim/bamboo_manylinux1_x86_64
     - CIBW_ENVIRONMENT_LINUX='BOOST_ROOT=/boost'
     - TWINE_USERNAME='mvilim'
+    - CMAKE_BUILD_PARALLEL_LEVEL=4
     # TWINE_PASSWORD is stored in the travis project settings
 
 script:
