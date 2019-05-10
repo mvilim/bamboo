@@ -119,8 +119,10 @@ void initialize(const MessageDescriptor* descriptor, unique_ptr<Node>& node) {
                         prim_node.init_type<PrimitiveType::INT64>();
                         break;
                     case pb::FieldDescriptor::TYPE_STRING:
-                    case pb::FieldDescriptor::TYPE_BYTES:
                         prim_node.init_type<PrimitiveType::STRING>();
+                        break;
+                    case pb::FieldDescriptor::TYPE_BYTES:
+                        prim_node.init_type<PrimitiveType::BYTE_ARRAY>();
                         break;
                     case pb::FieldDescriptor::TYPE_UINT32:
                     case pb::FieldDescriptor::TYPE_FIXED32:
@@ -243,9 +245,14 @@ static inline void add_missing(PrimitiveNode& v, Datum& datum) {
             v.add_unsafe(field->default_value_int64());
             break;
         case pb::FieldDescriptor::TYPE_STRING:
-        case pb::FieldDescriptor::TYPE_BYTES:
             v.add_unsafe(field->default_value_string());
             break;
+        case pb::FieldDescriptor::TYPE_BYTES: {
+            const string& s = field->default_value_string();
+            std::vector<uint8_t> vec(s.begin(), s.end());
+            v.add_unsafe(vec);
+            break;
+        }
         case pb::FieldDescriptor::TYPE_UINT32:
         case pb::FieldDescriptor::TYPE_FIXED32:
             v.add_unsafe(field->default_value_uint32());
@@ -305,17 +312,16 @@ static inline void add_existing(PrimitiveNode& v, Datum& datum) {
             break;
         }
         case pb::FieldDescriptor::TYPE_STRING: {
-            std::string* value;
-            WireFormatLite::ReadString(&datum.stream, &value);
-            v.add_unsafe(*value);
+            string& s = v.add_string();
+            WireFormatLite::ReadString(&datum.stream, &s);
             break;
         }
         case pb::FieldDescriptor::TYPE_BYTES: {
-            // this reads the value as a string, instead of a vector of uint8_t -- we should
-            // probably change it
-            std::string* value;
-            WireFormatLite::ReadBytes(&datum.stream, &value);
-            v.add_unsafe(*value);
+            // this causes unnecessary copying, it should be made more efficient
+            string s;
+            WireFormatLite::ReadBytes(&datum.stream, &s);
+            std::vector<uint8_t> vec(s.begin(), s.end());
+            v.add_unsafe(vec);
             break;
         }
         case pb::FieldDescriptor::TYPE_UINT32: {

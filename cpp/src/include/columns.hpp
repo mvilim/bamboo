@@ -141,7 +141,7 @@ template <class T> class PrimitiveSimpleVector : public PrimitiveVector {
         vec.push_back(t);
     }
 
-    const vector<T>& get_vector() {
+    vector<T>& get_vector() {
         return vec;
     }
 };
@@ -328,6 +328,14 @@ class PrimitiveNode : public Node, Visitable<PrimitiveNode> {
     template <class T> void add_unsafe(T t) {
         static_cast<typename VectorTyper<PrimitiveEnum<T>::primitive_enum>::vector_type&>(*values)
             .add(t);
+    }
+
+    // it would be better to adapt the add method to be able to efficiently move strings (a simple tested showed a performance impact)
+    string& add_string() {
+        vector<string>& vec = static_cast<typename VectorTyper<PrimitiveType::STRING>::vector_type&>(*values)
+            .get_vector();
+        vec.emplace_back();
+        return vec.back();
     }
 
     template <PrimitiveType T> auto& get_values() {

@@ -36,7 +36,8 @@ class PBDTests(TestCase):
         df = self.read_example().flatten()
 
         df_equality(self, {'a': [13, 13], 'b': [23, 23], 'c': [33, 33],
-                           'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3], 's': ['', '']}, df)
+                           'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3], 's': ['test', 'test'],
+                           'sd': ['', '']}, df)
 
     def test_inclusion(self):
         df = self.read_example(include=['a']).flatten()
@@ -45,7 +46,8 @@ class PBDTests(TestCase):
     def test_exclusion(self):
         df = self.read_example(exclude='m.b').flatten()
         df_equality(self, {'a': [13, 13], 'c': [33, 33],
-                           'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3], 's': ['', '']}, df)
+                           'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3], 's': ['test', 'test'],
+                           'sd': ['', '']}, df)
 
     def test_conflict(self):
         read = lambda: self.read_example(include='m.b', exclude='m.b').flatten()
