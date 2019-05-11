@@ -479,11 +479,11 @@ template <class T, class F, class L> struct Converter {
             init(node, obj_type);
         }
 
-        switch (obj_type) {
-            if (node->type != obj_type) {
-                throw std::invalid_argument("Inconsistent schema");
-            }
+        if (node->type != obj_type && obj_type != ObjType::INCOMPLETE) {
+            throw std::invalid_argument("Inconsistent schema");
+        }
 
+        switch (obj_type) {
             case ObjType::RECORD: {
                 RecordNode& record_node = *static_cast<RecordNode*>(node.get());
 
