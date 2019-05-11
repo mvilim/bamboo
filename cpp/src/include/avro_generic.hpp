@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <Schema.hh>
 #include <avro.hpp>
 #include <columns.hpp>
 

@@ -15,7 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <DataFile.hh>
+#pragma GCC diagnostic pop
 #include <avro_direct.hpp>
 
 namespace ba = bamboo::avro;
