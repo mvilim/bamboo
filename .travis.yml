@@ -14,7 +14,8 @@ env:
     - CIBW_TEST_REQUIRES='nose'
     - CIBW_TEST_COMMAND='cd {project}; pip install -r test_requirements.txt; nosetests python/bamboo/tests'
     - CIBW_MANYLINUX1_X86_64_IMAGE=mvilim/bamboo_manylinux1_x86_64
-    - CIBW_ENVIRONMENT_LINUX='BOOST_ROOT=/boost BAMBOO_USE_INSTALL=ON'
+    - CIBW_ENVIRONMENT_LINUX='BOOST_ROOT=/boost'
+    - CIBW_ENVIRONMENT'BAMBOO_USE_INSTALL=ON'
     - TWINE_USERNAME='mvilim'
     # TWINE_PASSWORD is stored in the travis project settings
 
