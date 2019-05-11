@@ -1,14 +1,14 @@
 # Copyright (c) 2019 Michael Vilim
-# 
+#
 # This file is part of the bamboo library. It is currently hosted at
 # https://github.com/mvilim/bamboo
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,9 +23,11 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# this must be set here so that it affects avro, allowing us 
+# this must be set here so that it affects avro, allowing us
 # to link its static archive into our runtime loaded module
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # included for debug compatibility with avro library
 # should change this to only enable if in debug build
@@ -33,22 +35,70 @@ if (CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
 endif ()
 
-# link statically to arrow because of ARROW-4242
-set(ARROW_BUILD_STATIC ON)
-set(ARROW_IPC ON)
-
 list(APPEND CMAKE_MODULE_PATH thirdparty/pbd/thirdparty/proto-cmake/cmake)
 
 find_package(Protobuf REQUIRED)
-
-add_subdirectory(thirdparty/arrow/cpp)
-add_subdirectory(thirdparty/pybind11)
-add_subdirectory(thirdparty/avro/lang/c++)
-
 find_package(Boost 1.38 REQUIRED)
+
+add_subdirectory(thirdparty/pybind11)
 
 FILE(GLOB bamboo_cpp_src "src/*.cpp")
 add_library(bamboo_cpp ${bamboo_cpp_src})
+
+if (NOT EXISTS ${CMAKE_BUILD_TYPE})
+    SET(CMAKE_BUILD_TYPE Release)
+endif ()
+
+if ($ENV{BAMBOO_USE_INSTALL})
+    set(USE_INSTALL ON)
+endif ()
+
+if (USE_INSTALL)
+    set(USE_INSTALL ON)
+
+    include(ExternalProject)
+
+    set(AVRO_LIB_INSTALL_DIR "/tmp/bamboo_build/avro_lib")
+    set(ARROW_LIB_INSTALL_DIR "/tmp/bamboo_build/arrow_lib")
+
+    if(NOT EXISTS ${AVRO_LIB_INSTALL_DIR})
+        ExternalProject_Add(avro_lib
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/avro/lang/c++
+            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${AVRO_LIB_INSTALL_DIR}
+                -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                -DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -Wno-int-in-bool-context
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            )
+    else ()
+        add_custom_target(avro_lib)
+    endif ()
+
+    if(NOT EXISTS ${ARROW_LIB_INSTALL_DIR})
+        ExternalProject_Add(arrow_lib
+            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/arrow/cpp
+            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ARROW_LIB_INSTALL_DIR}
+                -DARROW_IPC=ON
+                -DARROW_TEST_LINKAGE=shared
+                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            )
+    else ()
+        add_custom_target(arrow_lib)
+    endif ()
+
+    link_directories(${AVRO_LIB_INSTALL_DIR}/lib)
+    link_directories(${ARROW_LIB_INSTALL_DIR}/lib64)
+
+    add_dependencies(bamboo_cpp avro_lib)
+    add_dependencies(bamboo_cpp arrow_lib)
+else ()
+    set(ARROW_IPC ON)
+    set(ARROW_TEST_LINKAGE shared)
+    set(ARROW_BUILD_SHARED ON)
+
+    add_subdirectory(thirdparty/arrow/cpp)
+    add_subdirectory(thirdparty/avro/lang/c++)
+endif ()
+
 target_include_directories(bamboo_cpp
     PUBLIC src/include
     thirdparty/json/single_include
@@ -59,8 +109,8 @@ target_include_directories(bamboo_cpp
 
 target_link_libraries(bamboo_cpp
     PUBLIC
-    avrocpp_s
-    arrow_static
+    avrocpp
+    arrow
     protobuf::libprotobuf
     z
     )
