@@ -27,8 +27,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # to link its static archive into our runtime loaded module
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-#set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-
 # included for debug compatibility with avro library
 # should change this to only enable if in debug build
 if (CMAKE_COMPILER_IS_GNUCXX)
@@ -90,13 +88,26 @@ if (USE_INSTALL)
 
     add_dependencies(bamboo_cpp avro_lib)
     add_dependencies(bamboo_cpp arrow_lib)
+
+    target_link_libraries(bamboo_cpp
+        PUBLIC
+        avrocpp
+        arrow
+    )
 else ()
     set(ARROW_IPC ON)
-    set(ARROW_TEST_LINKAGE shared)
-    set(ARROW_BUILD_SHARED ON)
+    set(ARROW_TEST_LINKAGE static)
+    set(ARROW_BUILD_STATIC ON)
 
+    # should suppress deprecation warnings in avro here as well
     add_subdirectory(thirdparty/arrow/cpp)
     add_subdirectory(thirdparty/avro/lang/c++)
+
+    target_link_libraries(bamboo_cpp
+        PUBLIC
+        avrocpp_s
+        arrow_static
+    )
 endif ()
 
 target_include_directories(bamboo_cpp
@@ -109,11 +120,9 @@ target_include_directories(bamboo_cpp
 
 target_link_libraries(bamboo_cpp
     PUBLIC
-    avrocpp
-    arrow
     protobuf::libprotobuf
     z
-    )
+)
 
 pybind11_add_module(bamboo_cpp_bind src/bind/bind.cpp)
 target_include_directories(bamboo_cpp_bind
