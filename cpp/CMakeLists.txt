@@ -92,7 +92,7 @@ if (USE_INSTALL)
 
     target_link_libraries(bamboo_cpp
         PUBLIC
-        avrocpp
+        avrocpp_s
         arrow
     )
 else ()
@@ -122,6 +122,7 @@ target_include_directories(bamboo_cpp
 target_link_libraries(bamboo_cpp
     PUBLIC
     protobuf::libprotobuf
+    boost_iostreams.a
     z
 )
 
