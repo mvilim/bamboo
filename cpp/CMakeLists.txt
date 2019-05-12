@@ -90,11 +90,14 @@ if (USE_INSTALL)
     add_dependencies(bamboo_cpp avro_lib)
     add_dependencies(bamboo_cpp arrow_lib)
 
-    target_link_libraries(bamboo_cpp
-        PUBLIC
-        avrocpp_s
-        arrow
-    )
+    target_link_libraries(bamboo_cpp PUBLIC arrow)
+
+    if (APPLE)
+        target_link_libraries(bamboo_cpp PUBLIC avrocpp_s)
+    else ()
+        target_link_libraries(bamboo_cpp PUBLIC avrocpp)
+    endif ()
+
 else ()
     set(ARROW_IPC ON)
     set(ARROW_TEST_LINKAGE static)
@@ -122,9 +125,12 @@ target_include_directories(bamboo_cpp
 target_link_libraries(bamboo_cpp
     PUBLIC
     protobuf::libprotobuf
-    boost_iostreams.a
     z
 )
+
+if (APPLE)
+    target_link_libraries(bamboo_cpp PUBLIC boost_iostreams.a)
+endif ()
 
 pybind11_add_module(bamboo_cpp_bind src/bind/bind.cpp)
 target_include_directories(bamboo_cpp_bind
