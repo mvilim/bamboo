@@ -63,7 +63,8 @@ struct Datum {
     bool reading_missing;
 
     const FieldDescriptor* field;
-    unsigned char wire_type;
+    uint32_t current_tag;
+    uint32_t read_ahead_tag = 0;
 
     Datum(pb::io::CodedInputStream& stream, const MessageDescriptor* descriptor,
           bool reading_missing = false)
@@ -142,16 +143,21 @@ class FieldIterator final : public FieldIteratorType {
                 return nextMissing();
             }
 
-            uint32_t tag = datum.stream.ReadTagNoLastTag();
+            if (datum.read_ahead_tag != 0) {
+                datum.current_tag = datum.read_ahead_tag;
+                datum.read_ahead_tag = 0;
+            } else {
+                datum.current_tag = datum.stream.ReadTagNoLastTag();
+            }
 
-            if (tag == 0) {
+            if (datum.current_tag == 0) {
                 datum.reading_missing = true;
 
                 return nextMissing();
             }
 
-            unsigned char wire_type = tag & 0x07;
-            uint32_t field_number = tag >> 3;
+            unsigned char wire_type = datum.current_tag & 0x07;
+            uint32_t field_number = datum.current_tag >> 3;
 
             if (!datum.descriptor) {
                 throw std::runtime_error("Null descriptor");
@@ -161,7 +167,6 @@ class FieldIterator final : public FieldIteratorType {
                 // should not be mutating the field
                 datum.field = datum.descriptor->number_to_field.at(field_number);
                 field_index = datum.field->index;
-                datum.wire_type = wire_type;
                 datum.field_processed[field_index] = true;
                 return true;
             } else {
@@ -209,27 +214,26 @@ class FieldIterator final : public FieldIteratorType {
 };
 
 class ListIterator final : public ListIteratorType {
-    int size;
-    int counter = -1;
-    Datum datum;
+    Datum& datum;
+    bool packed;
+    Limit limit;
+    bool read_first = false;
 
    public:
-    ListIterator(Datum input_datum)
-        : datum(input_datum.stream, input_datum.descriptor, input_datum.field,
-                input_datum.reading_missing) {
+    ListIterator(Datum& datum) : datum(datum) {
         if (!datum.field || !datum.field->pb_field->is_repeated()) {
             throw std::runtime_error("Not a repeated field");
         }
 
         datum.reading_list = true;
-        if (datum.reading_missing) {
-            size = 0;
-        } else {
-            if (input_datum.wire_type == WireType::WIRETYPE_LENGTH_DELIMITED &&
+        if (!datum.reading_missing) {
+            unsigned char wire_type = datum.current_tag & 0x07;
+            if (wire_type == WireType::WIRETYPE_LENGTH_DELIMITED &&
                 datum.field->pb_field->is_packable()) {
-                size = datum.stream.ReadVarintSizeAsInt(&size);
+                packed = true;
+                limit = datum.stream.ReadLengthAndPushLimit();
             } else {
-                size = 1;
+                packed = false;
             }
         }
     };
@@ -237,8 +241,38 @@ class ListIterator final : public ListIteratorType {
     ~ListIterator() final override = default;
 
     bool next() final override {
-        bool result = counter++ < size;
-        return result;
+        if (datum.reading_missing) {
+            return false;
+        }
+
+        if (packed) {
+            bool hasBytesRemaining = datum.stream.BytesUntilLimit() > 0;
+            if (!hasBytesRemaining) {
+                datum.stream.PopLimit(limit);
+                datum.reading_list = false;
+            }
+            return hasBytesRemaining;
+        } else {
+            // this approach to reading unpacked repeated fields makes the assumption that every
+            // element of the repeated field is encoded sequentially. The protobuf spec explicitly
+            // says that this is not required (though most implementations will take that approach).
+            // This assumption should be fixed (though it is difficult to resolve this with the
+            // generic converter)
+            if (read_first) {
+                uint32_t tag = datum.stream.ReadTagNoLastTag();
+
+                if (tag == datum.current_tag) {
+                    return true;
+                } else {
+                    datum.read_ahead_tag = tag;
+                    datum.reading_list = false;
+                    return false;
+                }
+            } else {
+                read_first = true;
+                return true;
+            }
+        }
     };
 
     Datum& value() final override {

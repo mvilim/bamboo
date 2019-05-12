@@ -33,21 +33,28 @@ class PBDTests(TestCase):
         return from_pbd(io.BytesIO(example), include=include, exclude=exclude)
 
     def test_example(self):
-        df = self.read_example().flatten()
+        df = self.read_example().flatten(exclude=['rm'])
 
         df_equality(self, {'a': [13, 13], 'b': [23, 23], 'c': [33, 33],
                            'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3], 's': ['test', 'test'],
-                           'sd': ['', '']}, df)
+                           'sd': ['', ''], 'de': ['DE1', 'DE1']}, df)
+
+    def test_repeated_message(self):
+        node = self.read_example()
+        df = node.flatten(include=['rm'])
+
+        self.assertEqual(node.rm._value._index.lengths.array().tolist(), [2])
+        df_equality(self, {'b': [11, 22]}, df)
 
     def test_inclusion(self):
         df = self.read_example(include=['a']).flatten()
         df_equality(self, {'a': [13]}, df)
 
     def test_exclusion(self):
-        df = self.read_example(exclude='m.b').flatten()
+        df = self.read_example(exclude='m.b').flatten(exclude=['rm'])
         df_equality(self, {'a': [13, 13], 'c': [33, 33],
                            'd': [-1.3, -1.3], 'e': ['B', 'B'], 'f': [2.3, 3.3], 's': ['test', 'test'],
-                           'sd': ['', '']}, df)
+                           'sd': ['', ''], 'de': ['DE1', 'DE1']}, df)
 
     def test_conflict(self):
         read = lambda: self.read_example(include='m.b', exclude='m.b').flatten()
