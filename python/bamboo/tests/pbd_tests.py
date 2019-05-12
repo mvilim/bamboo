@@ -17,6 +17,7 @@
 
 import io
 import os
+from time import perf_counter
 from unittest import TestCase
 
 from bamboo import from_pbd
@@ -27,10 +28,30 @@ from bamboo.tests.test_utils import df_equality
 class PBDTests(TestCase):
     def read_example(self, include=None, exclude=None):
         file = open(os.path.join(os.path.dirname(__file__), 'data', 'example.pbd'), 'rb')
-        example = file.read()  # if you only wanted to read 512 bytes, do .read(512)
+        example = file.read()
         file.close()
 
         return from_pbd(io.BytesIO(example), include=include, exclude=exclude)
+
+    def test_perf(self):
+        file = open(os.path.join(os.path.dirname(__file__), 'data', 'perf_example.pbd'), 'rb')
+        example = io.BytesIO(file.read())
+        file.close()
+        n_record_bytes = 82
+        header_bytes = bytearray(example.getbuffer()[:-n_record_bytes])
+        record_bytes = bytearray(example.getbuffer()[-n_record_bytes:])
+        n = 10000000
+        b = header_bytes + record_bytes * n
+
+        t0 = perf_counter()
+        node = from_pbd(io.BytesIO(b))
+        t1 = perf_counter()
+        df = node.flatten()
+        t2 = perf_counter()
+
+        self.assertLess(t1 - t0, 5)
+        self.assertLess(t2 - t1, 1)
+        self.assertEqual(len(df), n)
 
     def test_example(self):
         df = self.read_example().flatten(exclude=['rm'])
