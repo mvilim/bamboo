@@ -24,8 +24,6 @@ limitations under the License.
 
 bamboo is a library for feeding nested data formats into pandas. The space of data representable in nested formats is larger than the space covered by pandas. pandas supports only data representable in a flat table (though things like multi-indexs allows certain types of tree formats to be efficiently projected into a table). Data which supports arbitrary nesting is not in general convertible to a pandas dataframe. In particular, data which contains multiple repetition structures (e.g. JSON arrays) that are not nested within each other will not be flattenable into a table.
 
-As a simple example
-
 The current data formats supported are:
 * JSON
 * Apache Avro
