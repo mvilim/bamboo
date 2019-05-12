@@ -46,7 +46,7 @@ class PBDTests(TestCase):
         n_record_bytes = 82
         header_bytes = bytearray(example.getvalue()[:-n_record_bytes])
         record_bytes = bytearray(example.getvalue()[-n_record_bytes:])
-        n = 10000000
+        n = 1000000
         b = header_bytes + record_bytes * n
 
         t0 = clock()
