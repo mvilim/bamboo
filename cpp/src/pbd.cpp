@@ -209,7 +209,8 @@ static inline void add(PrimitiveNode& v, pb::io::CodedInputStream& stream) {
     v.add_unsafe(value);
 }
 
-static inline void add_enum(PrimitiveNode& v, Datum& datum, int index) {
+static inline void add_enum(PrimitiveNode& v, Datum& datum, int number) {
+    int index = datum.field->pb_field->enum_type()->FindValueByNumber(number)->index();
     if (v.get_type() == PrimitiveType::ENUM) {
         shared_ptr<DynamicEnum> enum_values = v.get_enums().values;
         v.add(DynamicEnumValue(index, enum_values));
@@ -229,7 +230,7 @@ static inline void add_missing(PrimitiveNode& v, Datum& datum) {
             v.add_unsafe(field->default_value_double());
             break;
         case pb::FieldDescriptor::TYPE_ENUM:
-            add_enum(v, datum, field->default_value_enum()->index());
+            add_enum(v, datum, field->default_value_enum()->number());
             break;
         case pb::FieldDescriptor::TYPE_BOOL:
             v.add_unsafe(field->default_value_bool());
@@ -278,9 +279,9 @@ static inline void add_existing(PrimitiveNode& v, Datum& datum) {
             break;
         }
         case pb::FieldDescriptor::TYPE_ENUM: {
-            int index = WireFormatLite::ReadPrimitive<int, WireFormatLite::TYPE_ENUM>(&datum.stream,
-                                                                                      &index);
-            add_enum(v, datum, index);
+            int number;
+            WireFormatLite::ReadPrimitive<int, WireFormatLite::TYPE_ENUM>(&datum.stream, &number);
+            add_enum(v, datum, number);
             break;
         }
         case pb::FieldDescriptor::TYPE_BOOL: {
