@@ -17,12 +17,18 @@
 
 import io
 import os
-from time import perf_counter
+import sys
+
 from unittest import TestCase
 
 from bamboo import from_pbd
 
 from bamboo.tests.test_utils import df_equality
+
+if sys.version_info > (3, 0):
+    from time import perf_counter as clock
+else:
+    from time import clock
 
 
 class PBDTests(TestCase):
@@ -38,16 +44,16 @@ class PBDTests(TestCase):
         example = io.BytesIO(file.read())
         file.close()
         n_record_bytes = 82
-        header_bytes = bytearray(example.getbuffer()[:-n_record_bytes])
-        record_bytes = bytearray(example.getbuffer()[-n_record_bytes:])
+        header_bytes = bytearray(example.getvalue()[:-n_record_bytes])
+        record_bytes = bytearray(example.getvalue()[-n_record_bytes:])
         n = 10000000
         b = header_bytes + record_bytes * n
 
-        t0 = perf_counter()
+        t0 = clock()
         node = from_pbd(io.BytesIO(b))
-        t1 = perf_counter()
+        t1 = clock()
         df = node.flatten()
-        t2 = perf_counter()
+        t2 = clock()
 
         self.assertLess(t1 - t0, 5)
         self.assertLess(t2 - t1, 1)
