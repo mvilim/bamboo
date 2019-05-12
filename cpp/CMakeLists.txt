@@ -85,7 +85,7 @@ if (USE_INSTALL)
     endif ()
 
     link_directories(${AVRO_LIB_INSTALL_DIR}/lib)
-    link_directories(${ARROW_LIB_INSTALL_DIR}/lib64)
+    link_directories(${ARROW_LIB_INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR})
 
     add_dependencies(bamboo_cpp avro_lib)
     add_dependencies(bamboo_cpp arrow_lib)
