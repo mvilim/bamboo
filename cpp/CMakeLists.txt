@@ -66,6 +66,7 @@ if (USE_INSTALL)
                 -DCMAKE_POSITION_INDEPENDENT_CODE=ON
                 -DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations -Wno-int-in-bool-context
                 -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                -DCMAKE_CXX_STANDARD=14
             )
     else ()
         add_custom_target(avro_lib)
