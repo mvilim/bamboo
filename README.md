@@ -1,4 +1,4 @@
-<!---
+<!--
 Copyright (c) 2019 Michael Vilim
 
 This file is part of the bamboo library. It is currently hosted at
