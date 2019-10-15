@@ -242,6 +242,7 @@ class ListIterator final : public ListIteratorType {
 
     bool next() final override {
         if (datum.reading_missing) {
+            datum.reading_list = false;
             return false;
         }
 
