@@ -96,7 +96,7 @@ with open('requirements.txt') as fp:
     install_requires = fp.read()
 
 
-with open('requirements.txt') as fp:
+with open('test_requirements.txt') as fp:
     tests_require = fp.read()
 
 
