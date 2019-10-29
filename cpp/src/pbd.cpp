@@ -42,19 +42,29 @@ FieldDescriptor::FieldDescriptor(const pb::FieldDescriptor* pb_field, int index,
       index(index),
       message_type(create_message_type(pb_field, column_filter, implicit_include)) {}
 
+bool FieldDescriptor::has_fields() const
+{
+    return message_type && message_type->has_fields();
+}
+
 void MessageDescriptor::add_field(const pb::FieldDescriptor* field,
                                   const ColumnFilter* column_filter, bool implicit_include) {
     bool explicit_include = column_filter && column_filter->explicitly_include;
     bool explicit_exclude = column_filter && column_filter->explicitly_exclude;
     bool included = explicit_include || (implicit_include && !explicit_exclude);
 
-    if (included) {
-        int index = fields.size();
-        fields.push_back(
-            std::make_shared<FieldDescriptor>(field, index, column_filter, implicit_include));
+    int index = fields.size();
+    auto fieldDesc = std::make_shared<FieldDescriptor>(field, index, column_filter, included);
+    if (fieldDesc->has_fields() || (!fieldDesc->message_type && included)) {
+        fields.push_back(fieldDesc);
         FieldDescriptor* fd = fields.back().get();
         number_to_field.emplace(field->number(), fd);
     }
+}
+
+bool MessageDescriptor::has_fields() const
+{
+    return fields.size();
 }
 
 MessageDescriptor::MessageDescriptor(const pb::Descriptor* pb_descriptor,

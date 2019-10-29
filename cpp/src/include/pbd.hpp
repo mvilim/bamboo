@@ -38,6 +38,8 @@ struct FieldDescriptor {
 
     FieldDescriptor(const pb::FieldDescriptor* pb_field, int index,
                     const ColumnFilter* column_filter, bool implicit_include);
+
+    bool has_fields() const;
 };
 
 struct MessageDescriptor {
@@ -51,6 +53,8 @@ struct MessageDescriptor {
 
     void add_field(const pb::FieldDescriptor* field, const ColumnFilter* column_filter,
                    bool implicit_include);
+
+    bool has_fields() const;
 };
 
 struct Datum {

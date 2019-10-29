@@ -77,6 +77,10 @@ class PBDTests(TestCase):
         df = self.read_example(include=['a']).flatten()
         df_equality(self, {'a': [13]}, df)
 
+    def test_nested_inclusion(self):
+        df = self.read_example(include=['m.b']).flatten()
+        df_equality(self, {'b': [23]}, df)
+
     def test_exclusion(self):
         df = self.read_example(exclude='m.b').flatten(exclude=['rm'])
         df_equality(self, {'a': [13, 13], 'c': [33, 33],
