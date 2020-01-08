@@ -10,7 +10,7 @@ matrix:
 
 env:
   global:
-    - CIBW_SKIP='cp34-* *-manylinux1_i686'
+    - CIBW_SKIP='cp34-* *-manylinux1_i686 cp27m-macosx_10_6_intel'
     - CIBW_TEST_REQUIRES='nose'
     - CIBW_TEST_COMMAND='cd {project}; pip install -r test_requirements.txt; nosetests python/bamboo/tests'
     - CIBW_MANYLINUX1_X86_64_IMAGE=mvilim/bamboo_manylinux1_x86_64
