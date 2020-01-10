@@ -91,6 +91,10 @@ if (USE_INSTALL)
     add_dependencies(bamboo_cpp arrow_lib)
 
     target_link_libraries(bamboo_cpp PUBLIC arrow)
+    target_include_directories(bamboo_cpp PUBLIC
+        # including this is a hack -- better to use CMAKE_INSTALL_INCLUDEDIR properly, a la https://github.com/apache/arrow/pull/4387
+        ${ARROW_LIB_INSTALL_DIR}/include
+    )
 
     if (APPLE)
         target_link_libraries(bamboo_cpp PUBLIC avrocpp_s)

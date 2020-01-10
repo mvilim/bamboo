@@ -1,4 +1,4 @@
-pyarrow==0.14.0
+pyarrow==0.15.1
 fastavro>=0.21.0
 avro>=1.8.2; python_version < '3.0'
 avro-python3>=1.8.2; python_version > '3.0'

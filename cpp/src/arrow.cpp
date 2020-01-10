@@ -217,9 +217,6 @@ class NodeArrayVisitor : public virtual ArrayVisitor {
     virtual Status Visit(const TimestampArray& array) final override {
         return Status::NotImplemented("TimestampArray not implemented");
     }
-    virtual Status Visit(const IntervalArray& array) final override {
-        return Status::NotImplemented("IntervalArray not implemented");
-    }
     virtual Status Visit(const Decimal128Array& array) final override {
         return Status::NotImplemented("Decimal128Array not implemented");
     }
