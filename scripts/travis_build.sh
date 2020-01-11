@@ -6,7 +6,6 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     pip install cibuildwheel==$CIBUILDWHEEL_VERSION
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     HOMEBREW_NO_AUTO_UPDATE=1 brew install protobuf
-    sudo ln -s /usr/local/opt/openssl/lib/libcrypto.1.1.0.dylib /usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib
     sudo pip2 install cibuildwheel==$CIBUILDWHEEL_VERSION
 else
     echo Unrecognized OS
