@@ -26,7 +26,7 @@ import numpy as np
 import bamboo_cpp_bind as bamboo_cpp
 from bamboo import from_json
 
-from bamboo.tests.test_utils import df_equality
+from bamboo_tests.test_utils import df_equality
 
 
 class JsonTests(TestCase):

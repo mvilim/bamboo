@@ -23,7 +23,7 @@ from unittest import TestCase
 
 from bamboo import from_pbd
 
-from bamboo.tests.test_utils import df_equality
+from bamboo_tests.test_utils import df_equality
 
 if sys.version_info > (3, 0):
     from time import perf_counter as clock

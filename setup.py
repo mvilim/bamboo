@@ -118,5 +118,5 @@ setup(
     zip_safe=False,
     install_requires=install_requires,
     tests_require=tests_require,
-    test_suite="bamboo.tests",
+    test_suite="bamboo_tests",
     )

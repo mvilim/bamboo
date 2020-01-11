@@ -21,7 +21,7 @@ import numpy as np
 
 from bamboo import from_object, NameStrategy, FlattenStrategy
 from bamboo.nodes import column_names
-from bamboo.tests.test_utils import df_equality
+from bamboo_tests.test_utils import df_equality
 
 
 class SimpleObject:
