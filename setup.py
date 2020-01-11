@@ -112,7 +112,7 @@ setup(
     author_email='michael.vilim@gmail.com',
     description='A project for feeding various nested data formats into pandas',
     package_dir={'': 'python'},
-    packages=['bamboo', 'bamboo.converters', 'bamboo.tests'],
+    packages=['bamboo', 'bamboo.converters', 'bamboo_tests'],
     ext_modules=[CMakeExtension('bamboo_cpp', 'cpp')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
