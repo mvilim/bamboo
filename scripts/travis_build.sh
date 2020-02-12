@@ -1,8 +1,8 @@
 set -e -x
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    ./scripts/docker/install_proto.sh
-    pip install cibuildwheel
+    sudo ./scripts/docker/install_proto.sh
+    sudo pip install cibuildwheel
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     HOMEBREW_NO_AUTO_UPDATE=1 brew install protobuf
     sudo pip install cibuildwheel
