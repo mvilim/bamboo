@@ -1,12 +1,10 @@
 set -e -x
 
-CIBUILDWHEEL_VERSION=0.10.1
-
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    pip install cibuildwheel==$CIBUILDWHEEL_VERSION
+    pip install cibuildwheel
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     HOMEBREW_NO_AUTO_UPDATE=1 brew install protobuf
-    sudo pip2 install cibuildwheel==$CIBUILDWHEEL_VERSION
+    sudo pip2 install cibuildwheel
 else
     echo Unrecognized OS
     exit -1
