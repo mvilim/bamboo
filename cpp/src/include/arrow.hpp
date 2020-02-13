@@ -91,7 +91,7 @@ class ArrowInputStream : public virtual ::arrow::io::InputStream {
     }
 };
 
-unique_ptr<Node> convert(std::istream& is);
+unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter);
 
 }  // namespace arrow
 }  // namespace bamboo
