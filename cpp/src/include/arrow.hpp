@@ -80,7 +80,10 @@ class ArrowInputStream : public virtual ::arrow::io::InputStream {
     virtual Result<std::shared_ptr<Buffer>> Read(int64_t nbytes) final override {
         // should check status and forward to result
         std::shared_ptr<Buffer> out;
-        AllocateBuffer(nbytes, &out);
+        if (AllocateBuffer(nbytes, &out) != Status::OK())
+        {
+            return Result<std::shared_ptr<Buffer>>();
+        }
         stream.read((char*)(out->mutable_data()), nbytes);
         int64_t bytes_read = stream.gcount();
         pos += bytes_read;
