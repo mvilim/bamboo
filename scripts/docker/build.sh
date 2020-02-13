@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t mvilim/bamboo_manylinux1_x86_64 .
+docker build -t mvilim/bamboo_manylinux2014_x86_64 .

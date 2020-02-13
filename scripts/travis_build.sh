@@ -1,7 +1,6 @@
 set -e -x
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    sudo apt install -y libprotobuf-dev
     sudo pip install cibuildwheel
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     HOMEBREW_NO_AUTO_UPDATE=1 brew install protobuf
