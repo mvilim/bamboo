@@ -48,29 +48,47 @@ class ArrowInputStream : public virtual ::arrow::io::InputStream {
         return false;
     };
 
-    virtual Status Tell(int64_t* position) const final override {
-        *position = pos;
-        return Status::OK();
+    virtual Result<int64_t> Tell() const final override {
+        return Result<int64_t>(pos);
     }
 
-    virtual Status Read(int64_t nbytes, int64_t* bytes_read, void* out) final override {
+    // virtual Status Read(int64_t nbytes, int64_t* bytes_read, void* out) final override {
+    //     char* out_char = (char*)out;
+    //     stream.read(out_char, nbytes);
+    //     *bytes_read = stream.gcount();
+    //     pos += *bytes_read;
+    //     return Status::OK();
+    // }
+
+    virtual arrow::Result<int64_t> Read(int64_t nbytes, void* out) final override
+    {
         char* out_char = (char*)out;
         stream.read(out_char, nbytes);
-        *bytes_read = stream.gcount();
-        pos += *bytes_read;
-        return Status::OK();
-    }
-
-    virtual Status Read(int64_t nbytes, std::shared_ptr<Buffer>* out) final override {
-        RETURN_NOT_OK(AllocateBuffer(nbytes, out));
-        stream.read((char*)((*out)->mutable_data()), nbytes);
         int64_t bytes_read = stream.gcount();
         pos += bytes_read;
-        return Status::OK();
+        return Result<int64_t>(bytes_read);
+    }
+
+    // virtual Status Read(int64_t nbytes, std::shared_ptr<Buffer>* out) final override {
+    //     RETURN_NOT_OK(AllocateBuffer(nbytes, out));
+    //     stream.read((char*)((*out)->mutable_data()), nbytes);
+    //     int64_t bytes_read = stream.gcount();
+    //     pos += bytes_read;
+    //     return Status::OK();
+    // }
+
+    virtual Result<std::shared_ptr<Buffer>> Read(int64_t nbytes) final override {
+        // should check status and forward to result
+        std::shared_ptr<Buffer> out;
+        AllocateBuffer(nbytes, &out);
+        stream.read((char*)(out->mutable_data()), nbytes);
+        int64_t bytes_read = stream.gcount();
+        pos += bytes_read;
+        return Result<std::shared_ptr<Buffer>>(out);
     }
 };
 
-unique_ptr<Node> convert(std::istream& is, const ColumnFilter* column_filter);
+unique_ptr<Node> convert(std::istream& is);
 
 }  // namespace arrow
 }  // namespace bamboo
