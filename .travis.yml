@@ -10,7 +10,8 @@ matrix:
 
 env:
   global:
-    - CIBW_SKIP='cp27-* cp34-* *-manylinux_i686'
+    # not clear why pyarrow isn't using the wheel for cp38-macosx
+    - CIBW_SKIP='cp27-* cp34-* cp38-macosx_10_9_x86_64 *-manylinux_i686'
     - CIBW_BEFORE_BUILD='pip install cmake'
     - CIBW_TEST_REQUIRES='nose'
     - CIBW_TEST_COMMAND='cd {project}; pip install -r test_requirements.txt; nosetests python/bamboo_tests'
