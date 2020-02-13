@@ -111,6 +111,8 @@ setup(
     author='Michael Vilim',
     author_email='michael.vilim@gmail.com',
     description='A project for feeding various nested data formats into pandas',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     package_dir={'': 'python'},
     packages=['bamboo', 'bamboo.converters', 'bamboo_tests'],
     ext_modules=[CMakeExtension('bamboo_cpp', 'cpp')],
