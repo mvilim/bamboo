@@ -14,7 +14,7 @@ env:
     - CIBW_BEFORE_BUILD='pip install cmake'
     - CIBW_TEST_REQUIRES='nose'
     - CIBW_TEST_COMMAND='cd {project}; pip install -r test_requirements.txt; nosetests python/bamboo_tests'
-    - CIBW_MANYLINUX1_X86_64_IMAGE=manylinux2014
+    - CIBW_MANYLINUX1_X86_64_IMAGE=mvilim/bamboo_manylinux2014_x86_64
     - CIBW_ENVIRONMENT_MACOS='BAMBOO_USE_INSTALL=ON'
     - TWINE_USERNAME='mvilim'
     # TWINE_PASSWORD is stored in the travis project settings
