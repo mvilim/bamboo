@@ -107,7 +107,7 @@ with open(path.join(path.abspath(path.dirname(__file__)), 'README.md')) as fh:
 setup(
     name='bamboo-nested',
     url='https://github.com/mvilim/bamboo',
-    version='0.0.19',
+    version='0.1.0',
     author='Michael Vilim',
     author_email='michael.vilim@gmail.com',
     description='A project for feeding various nested data formats into pandas',
