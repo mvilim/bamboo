@@ -94,7 +94,6 @@ if (USE_INSTALL)
     target_include_directories(bamboo_cpp PUBLIC
         # including this is a hack -- better to use CMAKE_INSTALL_INCLUDEDIR properly, a la https://github.com/apache/arrow/pull/4387
         ${ARROW_LIB_INSTALL_DIR}/include
-        ${CMAKE_INSTALL_INCLUDEDIR}
     )
 
     if (APPLE)
